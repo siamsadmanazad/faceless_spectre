@@ -84,32 +84,23 @@ Client ──intent──▶ Server ──filtered state──▶ Client
 
 ---
 
-## The shuffle system
+## The shuffle
 
-The shuffle is the fairness foundation. It was designed to be provably unbiased and auditable:
+When you call for a shuffle, the table does it — not you. The server draws on OS-level entropy and rearranges all 52 cards before anyone at the table has any indication of the new order. There is no way to predict the result before it happens, no way to inspect it without the audit log, and no way to fake it.
 
-1. **Seed generation** — `crypto.randomBytes(32)` produces 32 bytes of entropy from the OS. This is hashed to a 64-character hex seed that is stored in the deck history.
-2. **Fisher–Yates permutation** — For each position `i` from the last card down to 1, the algorithm draws a fresh 4-byte uint32 from `crypto.randomBytes(4)` and maps it to a uniform position `j ≤ i` using modulo reduction. This produces exactly one of 52! possible permutations with equal probability.
-3. **Style is cosmetic** — A player can request a "riffle", "wash", "cut", or "casino" style shuffle. These parameters travel to the client as an animation hint only. The underlying permutation is always the same unbiased Fisher–Yates regardless of which style is chosen.
-4. **Audit trail** — Every shuffle appends an entry to `DeckTruth.history` with: timestamp, actor session ID, the seed, and SHA-256 hashes of the deck order before and after. The full game can be replayed from this log.
-5. **Test coverage** — A statistical test runs the shuffle 10,000 times over a 5-card deck and asserts each card appears in each position within ±15% of the expected frequency. A separate test asserts `Math.random` is never called.
+The animation you see — riffle, wash, cut, casino style — is pure theatre. The new order is already decided before the first card visually moves. The style you choose changes only what it looks like.
 
-The deck order lives only in `DeckTruth` on the server — a plain TypeScript object that is never serialized or included in any Colyseus schema.
+Every shuffle is logged: entropy seed, actor, and a fingerprint of the order before and after. If anyone ever claims the table cheated, the full sequence from the room's first card to its last can be replayed and verified, deal by deal.
 
 ---
 
-## Card identity system
+## The memory game
 
-Every card in the deck has a **stable, server-assigned string ID** (e.g. `"AH"` for Ace of Hearts, `"10S"` for Ten of Spades). These IDs are assigned once at room creation and never change.
+Every card carries a permanent identity. It doesn't change as it moves between the deck, your hand, and the table. When you draw the Ace of Hearts, that card remains the Ace of Hearts whether it's sitting face-down in front of you or eventually turned up for everyone to see.
 
-**Why stable IDs matter for skill and memory:**
+The server never tells you what's in the deck — only that there are *N* cards left. What you know about what remains is exactly what you've been shown. That's deliberate. Counting, remembering, and reasoning about what's left is the skill the game is built on.
 
-- A client can track which card IDs it has seen revealed on the table and remember them. A skilled player who pays attention can deduce what remains in the deck.
-- Because the server only sends `rank` and `suit` to authorized viewers (via `@filter`), a player can only see a face when they are entitled to — when the card is theirs (`OWNER_ONLY`) or when it has been revealed publicly (`PUBLIC`).
-- The card state machine (`DECK → DRAWN → HAND → SELECTED → MOVING → PLACED → REVEALED`) ensures revealed cards cannot be silently flipped back to hidden. Once shown, the ID is public knowledge for all connected clients.
-- The deck order is never transmitted. Clients receive only `deckSize` — an integer. Counting cards from what has been seen is therefore a pure skill/memory exercise: the server guarantees there is no information leak, and the player's advantage comes entirely from attention, not from client-side inspection.
-
-This design makes Phantom Table suitable for games where hidden information and memory are core mechanics (Poker, Rummy, Blackjack) — the server enforces the rules of secrecy so the game's skill ceiling is real.
+Once a card has been revealed, it stays revealed. The server enforces the blinds; there's no peeking. Your advantage comes entirely from paying attention — not from the client.
 
 ---
 
