@@ -121,3 +121,4 @@ phantom-table/
 - When something breaks, identify root cause before fixing. Never use "just make it work" shortcuts.
 - The game server is a **stateful, long-lived WebSocket server**. Never deploy it to serverless/edge workers.
 - Periodically remind yourself: *"Never send hidden card data to a client, even temporarily."*
+- **Never add a `Co-Authored-By` trailer to any commit.** No Claude, no Anthropic, no tool attribution of any kind in git history.
