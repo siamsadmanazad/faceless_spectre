@@ -1,5 +1,5 @@
 {
-  "name": "@phantom-table/client",
+  "name": "@faceless-spectre/client",
   "version": "0.0.0",
   "private": true,
   "scripts": {
@@ -10,7 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@phantom-table/shared": "workspace:*",
+    "@faceless-spectre/shared": "workspace:*",
     "@react-three/drei": "^9.109.0",
     "@react-three/fiber": "^8.16.0",
     "colyseus.js": "^0.15.0",

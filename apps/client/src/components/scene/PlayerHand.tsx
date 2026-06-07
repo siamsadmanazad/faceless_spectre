@@ -2,7 +2,7 @@
 
 import { useRoomStore, canSeeFace } from '../../store/roomStore';
 import { CardMesh } from './CardMesh';
-import { CardState } from '@phantom-table/shared';
+import { CardState } from '@faceless-spectre/shared';
 
 const FAN_RADIUS = 2.8;
 const FAN_ARC = Math.PI * 0.5; // 90° spread

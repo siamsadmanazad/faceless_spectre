@@ -31,7 +31,7 @@ async function main(): Promise<void> {
 
   await app.register(cors, { origin: true });
 
-  app.get('/health', async () => ({ status: 'ok', service: 'phantom-table-server' }));
+  app.get('/health', async () => ({ status: 'ok', service: 'faceless-spectre-server' }));
 
   app.get('/lobby', async () => {
     const rooms = await matchMaker.query({ name: 'table_room' });
@@ -77,7 +77,7 @@ async function main(): Promise<void> {
   // so Fastify's listeners are captured in attachMatchMakingRoutes.
   gameServer.attach({ server: app.server as http.Server });
 
-  console.log(`[server] Phantom Table server listening on port ${PORT}`);
+  console.log(`[server] Faceless Spectre server listening on port ${PORT}`);
 }
 
 main().catch((err) => {

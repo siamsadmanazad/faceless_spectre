@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { fisherYatesShuffle, generateSeed, hashOrder, shuffleDeck } from '../engine/shuffle';
 import { DeckTruth } from '../engine/DeckTruth';
-import { STANDARD_DECK } from '@phantom-table/shared';
+import { STANDARD_DECK } from '@faceless-spectre/shared';
 
 const CARD_IDS = STANDARD_DECK.map(({ rank, suit }) => `${rank}${suit}`);
 

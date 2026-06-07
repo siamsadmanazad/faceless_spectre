@@ -1,4 +1,4 @@
-import { ErrorCode } from '@phantom-table/shared';
+import { ErrorCode } from '@faceless-spectre/shared';
 import { CardSchema } from '../state/CardSchema';
 import { MapSchema } from '@colyseus/schema';
 import { PlayerSchema } from '../state/PlayerSchema';

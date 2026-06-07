@@ -1,6 +1,6 @@
 import { Schema, type, filter } from '@colyseus/schema';
 import { Client } from 'colyseus';
-import { Visibility } from '@phantom-table/shared';
+import { Visibility } from '@faceless-spectre/shared';
 import { RoomStateSchema } from './RoomStateSchema';
 
 function canSeeCardFace(this: CardSchema, client: Client, _value: string, _root: RoomStateSchema): boolean {

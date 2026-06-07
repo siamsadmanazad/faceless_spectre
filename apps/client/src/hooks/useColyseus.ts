@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Client, Room } from 'colyseus.js';
-import { IntentType, ShuffleStyle, ShuffleIntensity } from '@phantom-table/shared';
+import { IntentType, ShuffleStyle, ShuffleIntensity } from '@faceless-spectre/shared';
 import { useRoomStore, CardView, PlayerView } from '../store/roomStore';
 
 const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL ?? 'http://localhost:2567';

@@ -1,4 +1,4 @@
-import { CARD_STATE_MACHINE } from '@phantom-table/shared';
+import { CARD_STATE_MACHINE } from '@faceless-spectre/shared';
 
 export function isLegalTransition(from: string, to: string): boolean {
   const allowed = CARD_STATE_MACHINE[from];

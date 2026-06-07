@@ -1,5 +1,5 @@
 {
-  "name": "@phantom-table/shared",
+  "name": "@faceless-spectre/shared",
   "version": "0.0.0",
   "private": true,
   "main": "./dist/index.js",

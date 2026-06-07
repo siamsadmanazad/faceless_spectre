@@ -1,4 +1,4 @@
-# Phantom Table
+# Faceless Spectre
 
 > *You sit down at a table draped in dark felt. Across from you, a pair of ghost hands float where a face should be — masked, still, waiting. The deck cuts itself. The cards know who they belong to. Nobody cheats here.*
 
@@ -8,7 +8,7 @@ A server-authoritative, 3D multiplayer card sandbox built for the browser. No ru
 
 ## What it is
 
-Phantom Table is a **game-agnostic 3D card platform**. The server is the only source of truth — cards shuffle with cryptographic randomness, hidden hands never touch an unauthorized client (not even briefly, not even for animation), and every move is logged for replay and audit.
+Faceless Spectre is a **game-agnostic 3D card platform**. The server is the only source of truth — cards shuffle with cryptographic randomness, hidden hands never touch an unauthorized client (not even briefly, not even for animation), and every move is logged for replay and audit.
 
 The first ruleset (Poker) is planned but deliberately deferred. The sandbox has to feel good first.
 

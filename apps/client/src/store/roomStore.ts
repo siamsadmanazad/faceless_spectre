@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Visibility } from '@phantom-table/shared';
+import { Visibility } from '@faceless-spectre/shared';
 
 export interface CardView {
   id: string;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { CardState } from '@phantom-table/shared';
+import { CardState } from '@faceless-spectre/shared';
 import { assertLegalTransition, isLegalTransition } from '../engine/stateMachine';
 
 describe('card state machine — legal transitions', () => {

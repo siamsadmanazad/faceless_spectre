@@ -1,4 +1,4 @@
-# Phantom Table — CLAUDE.md
+# Faceless Spectre — CLAUDE.md
 
 This is the project constitution. Read it at the start of every session before writing any code.
 
@@ -6,7 +6,7 @@ This is the project constitution. Read it at the start of every session before w
 
 ## What This Is
 
-**Phantom Table** is a server-authoritative, 3D, multiplayer web card platform. Players sit at a virtual card table, handle cards with free-hand gestures, hear each other via voice, and appear to each other as floating ghost hands behind masks.
+**Faceless Spectre** is a server-authoritative, 3D, multiplayer web card platform. Players sit at a virtual card table, handle cards with free-hand gestures, hear each other via voice, and appear to each other as floating ghost hands behind masks.
 
 The platform is a **game-agnostic sandbox** first. The first ruleset (Poker) is layered on only after the sandbox itself is enjoyable with no rules.
 
@@ -70,7 +70,7 @@ Mesh WebRTC for MVP (suitable for up to ~4–6 players). The Colyseus room is th
 ## Workspace Map
 
 ```
-phantom-table/
+faceless-spectre/
 ├── apps/
 │   ├── client/        # Next.js — the browser app (3D table, lobby, HUD)
 │   └── server/        # Node.js — Colyseus game server + Fastify HTTP

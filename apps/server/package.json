@@ -1,5 +1,5 @@
 {
-  "name": "@phantom-table/server",
+  "name": "@faceless-spectre/server",
   "version": "0.0.0",
   "private": true,
   "scripts": {
@@ -12,7 +12,7 @@
   "dependencies": {
     "@colyseus/schema": "^2.0.37",
     "@fastify/cors": "^11.2.0",
-    "@phantom-table/shared": "workspace:*",
+    "@faceless-spectre/shared": "workspace:*",
     "colyseus": "^0.15.0",
     "dotenv": "^16.4.0",
     "fastify": "^4.28.0",

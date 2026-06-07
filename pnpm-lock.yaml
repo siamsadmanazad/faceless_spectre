@@ -32,7 +32,7 @@ importers:
 
   apps/client:
     dependencies:
-      '@phantom-table/shared':
+      '@faceless-spectre/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       '@react-three/drei':
@@ -93,7 +93,7 @@ importers:
       '@fastify/cors':
         specifier: ^11.2.0
         version: 11.2.0
-      '@phantom-table/shared':
+      '@faceless-spectre/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       colyseus:

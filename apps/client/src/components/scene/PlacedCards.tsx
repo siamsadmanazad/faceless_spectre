@@ -2,7 +2,7 @@
 
 import { useRoomStore, canSeeFace } from '../../store/roomStore';
 import { CardMesh } from './CardMesh';
-import { CardState } from '@phantom-table/shared';
+import { CardState } from '@faceless-spectre/shared';
 
 export function PlacedCards() {
   const cards = useRoomStore((s) => s.cards);

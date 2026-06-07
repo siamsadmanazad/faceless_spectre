@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { matchMaker } from 'colyseus';
 import { TableRoom } from '../rooms/TableRoom';
-import { CardState, Visibility } from '@phantom-table/shared';
+import { CardState, Visibility } from '@faceless-spectre/shared';
 import { CardSchema } from '../state/CardSchema';
 
 /** Typed accessor for TableRoom private methods needed in tests. */

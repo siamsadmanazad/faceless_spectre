@@ -17,7 +17,7 @@ import {
   type PlaceIntent,
   type RevealIntent,
   type DealIntent,
-} from '@phantom-table/shared';
+} from '@faceless-spectre/shared';
 import { RoomStateSchema } from '../state/RoomStateSchema';
 import { CardSchema } from '../state/CardSchema';
 import { PlayerSchema } from '../state/PlayerSchema';

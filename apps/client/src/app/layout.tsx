@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Phantom Table',
+  title: 'Faceless Spectre',
   description: 'Server-authoritative 3D multiplayer card platform',
 };
 

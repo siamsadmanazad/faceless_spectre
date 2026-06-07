@@ -60,7 +60,7 @@ export default function LobbyPage() {
   return (
     <main style={styles.root}>
       <div style={styles.card}>
-        <h1 style={styles.title}>👻 Phantom Table</h1>
+        <h1 style={styles.title}>👻 Faceless Spectre</h1>
         <p style={styles.subtitle}>Server-authoritative 3D card sandbox</p>
 
         <div style={styles.field}>
