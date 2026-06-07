@@ -1,0 +1,30 @@
+{
+  "name": "@phantom-table/server",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "eslint src --ext .ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@colyseus/schema": "^2.0.37",
+    "@fastify/cors": "^11.2.0",
+    "@phantom-table/shared": "workspace:*",
+    "colyseus": "^0.15.0",
+    "dotenv": "^16.4.0",
+    "fastify": "^4.28.0",
+    "ioredis": "^5.4.0",
+    "pg": "^8.12.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/pg": "^8.11.0",
+    "colyseus.js": "^0.15.28",
+    "tsx": "^4.16.0",
+    "typescript": "*",
+    "vitest": "*"
+  }
+}

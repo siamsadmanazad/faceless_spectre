@@ -1,0 +1,16 @@
+{
+  "name": "@phantom-table/shared",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src --ext .ts",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "*",
+    "vitest": "*"
+  }
+}

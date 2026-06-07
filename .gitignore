@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+.next/
+out/
+
+# Turborepo cache
+.turbo/
+
+# Environment — never commit real secrets
+.env
+.env.local
+.env.*.local
+apps/server/.env
+apps/client/.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+
+# Next.js generated
+next-env.d.ts
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Docker volumes are ephemeral but docker-compose.override.yml is local
+docker-compose.override.yml
