@@ -13,8 +13,12 @@ export function hashOrder(order: string[]): string {
 
 /**
  * Fisher-Yates shuffle seeded from Node's CSPRNG.
- * Never uses Math.random. The shuffle style/intensity parameters are
- * decorative — they affect the ANIMATION command only, not this result.
+ * Never uses Math.random.
+ *
+ * NOTE: Style/intensity are currently cosmetic — every style runs this same
+ * algorithm. Per-style statistical models (GSR riffle, overhand, casino) are
+ * specified in docs/realistic-shuffles.md and will replace the dispatch in
+ * shuffleDeck() during Phase 6.
  */
 export function fisherYatesShuffle(arr: string[]): string[] {
   const result = [...arr];

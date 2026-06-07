@@ -223,6 +223,8 @@ export class TableRoom extends Room<RoomStateSchema> {
     try {
       requireSeat(this.state.players, client.sessionId);
 
+      // Phase 6: pass style + intensity here once shuffleDeck() dispatches
+      // per-algorithm. See docs/realistic-shuffles.md.
       shuffleDeck(this.deckTruth, client.sessionId);
       this.state.deckSize = this.deckTruth.order.length;
 
