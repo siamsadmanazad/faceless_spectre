@@ -4,6 +4,7 @@ import {
   CardState,
   ErrorCode,
   IntentType,
+  MAX_INTENTS_PER_SECOND,
   MAX_PLAYERS,
   ServerMessageType,
   ShuffleIntensity,
@@ -17,6 +18,8 @@ import {
   type PlaceIntent,
   type RevealIntent,
   type DealIntent,
+  type GrabIntent,
+  type ReleaseIntent,
 } from '@faceless-spectre/shared';
 import { RoomStateSchema } from '../state/RoomStateSchema';
 import { CardSchema } from '../state/CardSchema';
@@ -37,6 +40,9 @@ export class TableRoom extends Room<RoomStateSchema> {
 
   /** Server-only deck truth — never serialized or sent to any client. */
   private deckTruth = new DeckTruth();
+
+  /** Per-session intent rate-limit counters. Fixed-window, 1-second windows. */
+  private intentCounts = new Map<string, { count: number; windowStart: number }>();
 
   onCreate(): void {
     this.setState(new RoomStateSchema());
@@ -64,6 +70,7 @@ export class TableRoom extends Room<RoomStateSchema> {
   }
 
   onLeave(client: Client, _consented: boolean): void {
+    this.intentCounts.delete(client.sessionId);
     const player = this.state.players.get(client.sessionId);
     if (player) {
       player.connected = false;
@@ -134,9 +141,34 @@ export class TableRoom extends Room<RoomStateSchema> {
     logger.warn(`[TableRoom] intent rejected from ${client.sessionId}: [${code}] ${message}`);
   }
 
+  /**
+   * Fixed-window rate limiter: at most MAX_INTENTS_PER_SECOND per session per second.
+   * Accepts an optional nowFn for testing with a controlled clock.
+   */
+  private checkRateLimit(client: Client, nowFn: () => number = Date.now): void {
+    const now = nowFn();
+    const entry = this.intentCounts.get(client.sessionId);
+    if (!entry || now - entry.windowStart >= 1000) {
+      this.intentCounts.set(client.sessionId, { count: 1, windowStart: now });
+      return;
+    }
+    if (entry.count >= MAX_INTENTS_PER_SECOND) {
+      throw new IntentError(ErrorCode.RateLimited, `Rate limit exceeded for ${client.sessionId}`);
+    }
+    entry.count += 1;
+  }
+
   // ── Intent handlers ────────────────────────────────────────────────────────
 
   private registerIntentHandlers(): void {
+    this.onMessage(IntentType.Grab, (client, msg: GrabIntent) => {
+      this.handleGrab(client, msg.cardId);
+    });
+
+    this.onMessage(IntentType.Release, (client, msg: ReleaseIntent) => {
+      this.handleRelease(client, msg.cardId);
+    });
+
     this.onMessage(IntentType.Draw, (client, _msg: DrawIntent) => {
       this.handleDraw(client, 1);
     });
@@ -171,8 +203,54 @@ export class TableRoom extends Room<RoomStateSchema> {
     });
   }
 
+  private handleGrab(client: Client, cardId: string): void {
+    try {
+      this.checkRateLimit(client);
+      requireSeat(this.state.players, client.sessionId);
+      const card = requireCard(this.state.cards, cardId);
+      // Hand cards are private — only the owner may grab.
+      // Placed/Revealed cards are public to all seated players (sandbox semantics).
+      if (card.state === CardState.Hand) requireOwner(card, client.sessionId);
+      assertLegalTransition(card.state, CardState.Selected, cardId);
+      card.ownerId = client.sessionId;
+      card.state = CardState.Selected;
+      card.visibility = Visibility.OwnerOnly;
+      this.broadcast(ServerMessageType.AnimationCommand, {
+        type: ServerMessageType.AnimationCommand,
+        animation: AnimationType.Move,
+        durationMs: 200,
+        cardIds: [cardId],
+      });
+    } catch (err) {
+      if (err instanceof IntentError) this.rejectIntent(client, err.code, err.message);
+      else throw err;
+    }
+  }
+
+  private handleRelease(client: Client, cardId: string): void {
+    try {
+      this.checkRateLimit(client);
+      requireSeat(this.state.players, client.sessionId);
+      const card = requireCard(this.state.cards, cardId);
+      requireOwner(card, client.sessionId);
+      // SELECTED → HAND or MOVING → HAND
+      assertLegalTransition(card.state, CardState.Hand, cardId);
+      card.state = CardState.Hand;
+      this.broadcast(ServerMessageType.AnimationCommand, {
+        type: ServerMessageType.AnimationCommand,
+        animation: AnimationType.Move,
+        durationMs: 150,
+        cardIds: [cardId],
+      });
+    } catch (err) {
+      if (err instanceof IntentError) this.rejectIntent(client, err.code, err.message);
+      else throw err;
+    }
+  }
+
   private handleDraw(client: Client, count: number): void {
     try {
+      this.checkRateLimit(client);
       requireSeat(this.state.players, client.sessionId);
       const safeCount = Math.min(count, this.deckTruth.order.length);
       requireNonEmptyDeck(this.deckTruth.order.length);
@@ -221,6 +299,7 @@ export class TableRoom extends Room<RoomStateSchema> {
 
   private handleShuffle(client: Client, style: ShuffleStyle, intensity: ShuffleIntensity): void {
     try {
+      this.checkRateLimit(client);
       requireSeat(this.state.players, client.sessionId);
 
       // Phase 6: pass style + intensity here once shuffleDeck() dispatches
@@ -247,6 +326,7 @@ export class TableRoom extends Room<RoomStateSchema> {
 
   private handleCut(client: Client, cutAt: number): void {
     try {
+      this.checkRateLimit(client);
       requireSeat(this.state.players, client.sessionId);
       cutDeck(this.deckTruth, client.sessionId, cutAt);
       this.state.deckSize = this.deckTruth.order.length;
@@ -261,6 +341,7 @@ export class TableRoom extends Room<RoomStateSchema> {
 
   private handleDeal(client: Client, count: number, seats: number[]): void {
     try {
+      this.checkRateLimit(client);
       requireSeat(this.state.players, client.sessionId);
       requireNonEmptyDeck(this.deckTruth.order.length);
 
@@ -317,6 +398,7 @@ export class TableRoom extends Room<RoomStateSchema> {
 
   private handlePlace(client: Client, cardId: string, zoneId: string): void {
     try {
+      this.checkRateLimit(client);
       requireSeat(this.state.players, client.sessionId);
       const card = requireCard(this.state.cards, cardId);
       requireOwner(card, client.sessionId);
@@ -349,6 +431,7 @@ export class TableRoom extends Room<RoomStateSchema> {
 
   private handleReveal(client: Client, cardId: string): void {
     try {
+      this.checkRateLimit(client);
       requireSeat(this.state.players, client.sessionId);
       const card = requireCard(this.state.cards, cardId);
       requireOwner(card, client.sessionId);

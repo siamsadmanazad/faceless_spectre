@@ -1,4 +1,5 @@
-import { CARD_STATE_MACHINE } from '@faceless-spectre/shared';
+import { CARD_STATE_MACHINE, ErrorCode } from '@faceless-spectre/shared';
+import { IntentError } from '../validation/intentValidation';
 
 export function isLegalTransition(from: string, to: string): boolean {
   const allowed = CARD_STATE_MACHINE[from];
@@ -7,6 +8,9 @@ export function isLegalTransition(from: string, to: string): boolean {
 
 export function assertLegalTransition(from: string, to: string, cardId: string): void {
   if (!isLegalTransition(from, to)) {
-    throw new Error(`Illegal card state transition ${from} → ${to} for card ${cardId}`);
+    throw new IntentError(
+      ErrorCode.IllegalTransition,
+      `Illegal card state transition ${from} → ${to} for card ${cardId}`,
+    );
   }
 }

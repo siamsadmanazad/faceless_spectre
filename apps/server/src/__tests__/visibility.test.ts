@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { matchMaker } from 'colyseus';
 import { TableRoom } from '../rooms/TableRoom';
-import { CardState, Visibility } from '@faceless-spectre/shared';
+import { CardState, ErrorCode, MAX_INTENTS_PER_SECOND, Visibility } from '@faceless-spectre/shared';
 import { CardSchema } from '../state/CardSchema';
 
 /** Typed accessor for TableRoom private methods needed in tests. */
@@ -11,6 +11,9 @@ interface RoomInternals {
   handleShuffle(client: MockClient, style: string, intensity: string): void;
   handleReveal(client: MockClient, cardId: string): void;
   handlePlace(client: MockClient, cardId: string, zoneId: string): void;
+  handleGrab(client: MockClient, cardId: string): void;
+  handleRelease(client: MockClient, cardId: string): void;
+  checkRateLimit(client: MockClient, nowFn?: () => number): void;
   disconnect(): Promise<void>;
 }
 
@@ -265,5 +268,158 @@ describe('TableRoom — direct room method tests', () => {
     // Card should not have been moved (state unchanged)
     expect(room.state.cards.get(aCardId)?.state).toBe(prevState);
     expect(room.state.cards.get(aCardId)?.ownerId).toBe('session-a');
+  });
+});
+
+describe('grab / release intents', () => {
+  let grabRoom: TableRoom;
+  const clientA = makeMockClient('grab-session-a');
+  const clientB = makeMockClient('grab-session-b');
+
+  beforeAll(async () => {
+    await matchMaker.setup(undefined, undefined);
+    matchMaker.defineRoomType('grab_room', TableRoom);
+    const listing = await matchMaker.createRoom('grab_room', {});
+    grabRoom = matchMaker.getRoomById(listing.roomId) as TableRoom;
+    await (grabRoom as unknown as RoomInternals).onJoin(clientA, { displayName: 'Alice' });
+    await (grabRoom as unknown as RoomInternals).onJoin(clientB, { displayName: 'Bob' });
+    // Give Alice several hand cards so individual tests always have one to work with
+    await (grabRoom as unknown as RoomInternals).handleDraw(clientA, 5);
+  });
+
+  afterAll(async () => {
+    if (grabRoom) await (grabRoom as unknown as RoomInternals).disconnect();
+  });
+
+  beforeEach(() => {
+    // Clear sent messages before each test
+    clientA.lastSent = [];
+    clientB.lastSent = [];
+  });
+
+  function aliceHandCardId(): string {
+    let id = '';
+    grabRoom.state.cards.forEach((card: CardSchema) => {
+      if (!id && card.ownerId === 'grab-session-a' && card.state === CardState.Hand) id = card.id;
+    });
+    return id;
+  }
+
+  it('owner can grab their own hand card → state becomes Selected, visibility stays OwnerOnly', () => {
+    const cardId = aliceHandCardId();
+    expect(cardId).not.toBe('');
+    (grabRoom as unknown as RoomInternals).handleGrab(clientA, cardId);
+    const card = grabRoom.state.cards.get(cardId)!;
+    expect(card.state).toBe(CardState.Selected);
+    expect(card.visibility).toBe(Visibility.OwnerOnly);
+    expect(card.ownerId).toBe('grab-session-a');
+  });
+
+  it('grabbed card stays invisible to other players', () => {
+    let selectedCardId = '';
+    grabRoom.state.cards.forEach((card: CardSchema) => {
+      if (!selectedCardId && card.state === CardState.Selected) selectedCardId = card.id;
+    });
+    expect(selectedCardId).not.toBe('');
+    const card = grabRoom.state.cards.get(selectedCardId)!;
+    const bobCanSee =
+      card.visibility === Visibility.Public ||
+      (card.visibility === Visibility.OwnerOnly && card.ownerId === 'grab-session-b');
+    expect(bobCanSee).toBe(false);
+  });
+
+  it('release returns Selected card to Hand', () => {
+    let selectedCardId = '';
+    grabRoom.state.cards.forEach((card: CardSchema) => {
+      if (!selectedCardId && card.state === CardState.Selected && card.ownerId === 'grab-session-a') {
+        selectedCardId = card.id;
+      }
+    });
+    expect(selectedCardId).not.toBe('');
+    (grabRoom as unknown as RoomInternals).handleRelease(clientA, selectedCardId);
+    expect(grabRoom.state.cards.get(selectedCardId)!.state).toBe(CardState.Hand);
+  });
+
+  it('non-owner cannot grab a Hand card → NotYourCard error sent', () => {
+    const cardId = aliceHandCardId();
+    expect(cardId).not.toBe('');
+    clientB.lastSent = [];
+    (grabRoom as unknown as RoomInternals).handleGrab(clientB, cardId);
+    const err = clientB.lastSent.find((m) => m.type === 'error');
+    expect(err).toBeDefined();
+    expect((err!.message as { code: string }).code).toBe(ErrorCode.NotYourCard);
+    expect(grabRoom.state.cards.get(cardId)!.state).toBe(CardState.Hand);
+  });
+
+  it('grabbing a Deck card is rejected → IllegalTransition error', () => {
+    let deckCardId = '';
+    grabRoom.state.cards.forEach((card: CardSchema) => {
+      if (!deckCardId && card.state === CardState.Deck) deckCardId = card.id;
+    });
+    expect(deckCardId).not.toBe('');
+    clientA.lastSent = [];
+    (grabRoom as unknown as RoomInternals).handleGrab(clientA, deckCardId);
+    const err = clientA.lastSent.find((m) => m.type === 'error');
+    expect(err).toBeDefined();
+    expect((err!.message as { code: string }).code).toBe(ErrorCode.IllegalTransition);
+  });
+
+  it('any seated player can grab a Placed card (sandbox)', () => {
+    // Place a card on the table first
+    const cardId = aliceHandCardId();
+    expect(cardId).not.toBe('');
+    (grabRoom as unknown as RoomInternals).handlePlace(clientA, cardId, 'table');
+    const placed = grabRoom.state.cards.get(cardId)!;
+    expect(placed.state).toBe(CardState.Placed);
+    // Bob grabs the placed card
+    clientB.lastSent = [];
+    (grabRoom as unknown as RoomInternals).handleGrab(clientB, cardId);
+    const errMsg = clientB.lastSent.find((m) => m.type === 'error');
+    expect(errMsg).toBeUndefined();
+    expect(grabRoom.state.cards.get(cardId)!.state).toBe(CardState.Selected);
+    expect(grabRoom.state.cards.get(cardId)!.ownerId).toBe('grab-session-b');
+    // Clean up: release it
+    (grabRoom as unknown as RoomInternals).handleRelease(clientB, cardId);
+  });
+
+  it('release by non-owner is rejected → NotYourCard', () => {
+    // Alice grabs a fresh card
+    const cardId = aliceHandCardId();
+    expect(cardId).not.toBe('');
+    (grabRoom as unknown as RoomInternals).handleGrab(clientA, cardId);
+    expect(grabRoom.state.cards.get(cardId)!.state).toBe(CardState.Selected);
+    // Bob tries to release it
+    clientB.lastSent = [];
+    (grabRoom as unknown as RoomInternals).handleRelease(clientB, cardId);
+    const err = clientB.lastSent.find((m) => m.type === 'error');
+    expect(err).toBeDefined();
+    expect((err!.message as { code: string }).code).toBe(ErrorCode.NotYourCard);
+    // Clean up
+    (grabRoom as unknown as RoomInternals).handleRelease(clientA, cardId);
+  });
+
+  it('rate limit — 21st intent in the same window is rejected with RateLimited', () => {
+    // Use a far-future timestamp (1 hour ahead) to guarantee a fresh window,
+    // avoiding interference from real-time calls made by earlier tests.
+    const BASE = Date.now() + 3_600_000;
+    const nowFn = () => BASE;
+    const internals = grabRoom as unknown as RoomInternals;
+    for (let i = 0; i < MAX_INTENTS_PER_SECOND; i++) {
+      internals.checkRateLimit(clientA, nowFn);
+    }
+    expect(() => internals.checkRateLimit(clientA, nowFn)).toThrow();
+  });
+
+  it('rate limit — window resets after 1 second', () => {
+    // Use a different far-future base (2 hours ahead) so the previous test's
+    // window entry is in the past relative to this one.
+    let tick = Date.now() + 7_200_000;
+    const nowFn = () => tick;
+    const internals = grabRoom as unknown as RoomInternals;
+    for (let i = 0; i < MAX_INTENTS_PER_SECOND; i++) {
+      internals.checkRateLimit(clientA, nowFn);
+    }
+    tick += 1001; // advance 1001 ms — triggers a new window
+    expect(() => internals.checkRateLimit(clientA, nowFn)).not.toThrow();
   });
 });
