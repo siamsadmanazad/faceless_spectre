@@ -161,6 +161,24 @@ export interface PresenceIntent extends BaseIntent {
   maskId: string;
 }
 
+export interface WebRTCOfferIntent extends BaseIntent {
+  type: IntentType.WebRTCOffer;
+  targetId: string;
+  sdp: string;
+}
+
+export interface WebRTCAnswerIntent extends BaseIntent {
+  type: IntentType.WebRTCAnswer;
+  targetId: string;
+  sdp: string;
+}
+
+export interface WebRTCIceIntent extends BaseIntent {
+  type: IntentType.WebRTCIce;
+  targetId: string;
+  candidate: string;
+}
+
 export type ClientIntent =
   | GrabIntent
   | ReleaseIntent
@@ -173,7 +191,10 @@ export type ClientIntent =
   | PlaceIntent
   | RevealIntent
   | ChatIntent
-  | PresenceIntent;
+  | PresenceIntent
+  | WebRTCOfferIntent
+  | WebRTCAnswerIntent
+  | WebRTCIceIntent;
 
 // ── Server → Client Messages ──────────────────────────────────────────────────
 
@@ -203,8 +224,16 @@ export interface PresenceMessage {
   presences: PresencePayload[];
 }
 
+export interface WebRTCSignalMessage {
+  type: ServerMessageType.WebRTCOffer | ServerMessageType.WebRTCAnswer | ServerMessageType.WebRTCIce;
+  fromId: string;
+  sdp?: string;
+  candidate?: string;
+}
+
 export type ServerMessage =
   | StateUpdateMessage
   | AnimationCommand
   | ErrorMessage
-  | PresenceMessage;
+  | PresenceMessage
+  | WebRTCSignalMessage;

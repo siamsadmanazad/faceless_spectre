@@ -82,6 +82,9 @@ export enum IntentType {
   Reveal = 'reveal',
   Chat = 'chat',
   Presence = 'presence',
+  WebRTCOffer = 'webrtcOffer',
+  WebRTCAnswer = 'webrtcAnswer',
+  WebRTCIce = 'webrtcIce',
 }
 
 export enum ServerMessageType {
@@ -89,6 +92,9 @@ export enum ServerMessageType {
   AnimationCommand = 'animationCommand',
   Error = 'error',
   Presence = 'presence',
+  WebRTCOffer = 'webrtcOffer',
+  WebRTCAnswer = 'webrtcAnswer',
+  WebRTCIce = 'webrtcIce',
 }
 
 export enum ErrorCode {
