@@ -57,6 +57,7 @@ No internet required. Fully offline.
 | Click a hand card | Grab it (lifts and glows blue) |
 | Click the table / `Escape` | Release the grabbed card |
 | Click a placed card | Pick it up from the table |
+| `R` | Open the shuffle selector (pick style + intensity) |
 | `M` | Mute / unmute your microphone |
 | Mouse drag | Orbit the camera around the table |
 | Scroll | Zoom in / out |
@@ -108,6 +109,14 @@ When a player disconnects, their ghost hand vanishes immediately.
 
 ---
 
+## Shuffle styles
+
+Pressing `R` (or the Shuffle button) opens a small panel before anything happens. You pick a style — Overhand, Riffle, Wash, Split, or Casino — and an intensity level. Click Shuffle (or press Enter) and the deck animates accordingly: riffle tilts, overhand stutters, wash sweeps sideways, split pivots on its Y axis, casino spins full rotations. Deal briefly compresses the deck as cards leave.
+
+The animation is pure theatre. The new card order is decided by cryptographic randomness before the first card visually moves — the style chosen changes only what it looks like. The fairness test suite asserts that `Math.random` is never called during any style, and that the position distribution across 3,000 shuffles stays within 3× the expected frequency for every card/position pair.
+
+---
+
 ## Voice
 
 Players hear each other via browser-native WebRTC — audio flows directly between browsers without touching the game server. Colyseus relays only the signaling messages (SDP offers, answers, ICE candidates); once a peer connection is established, the server is out of the audio path entirely.
@@ -140,7 +149,7 @@ Once a card has been revealed, it stays revealed. The server enforces the blinds
 | 3 | Free-hand interaction — grab, place, rate limiting | ✅ Done |
 | 4 | Presence — ghost hands + masks in real time (20 Hz, <40 KB/s) | ✅ Done |
 | 5 | Voice — WebRTC over Colyseus signaling relay | ✅ Done |
-| 6 | Shuffle & deal UX — style selector, animation | ⬜ |
+| 6 | Shuffle & deal UX — style selector, animation | ✅ Done |
 | 7 | Replay + anti-cheat audit | ⬜ |
 | 8 | Persistence + horizontal scale (Redis-backed) | ⬜ |
 | 9 | Deploy — Cloudflare (client) + stateful host (server) | ⬜ |
