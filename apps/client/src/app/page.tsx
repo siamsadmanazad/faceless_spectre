@@ -12,10 +12,19 @@ interface RoomInfo {
   locked: boolean;
 }
 
+const PLAYER_COUNT_HINTS: Record<number, string> = {
+  2: 'Head-to-Head',
+  3: 'Three-player',
+  4: 'Classic',
+  5: 'Five-player',
+  6: 'Party (max)',
+};
+
 export default function LobbyPage() {
   const router = useRouter();
   const [rooms, setRooms] = useState<RoomInfo[]>([]);
   const [name, setName] = useState('Player');
+  const [maxPlayers, setMaxPlayers] = useState(4);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -41,7 +50,7 @@ export default function LobbyPage() {
       const res = await fetch(`${SERVER}/rooms/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ displayName: name }),
+        body: JSON.stringify({ displayName: name, maxPlayers }),
       });
       if (!res.ok) throw new Error('Failed to create room');
       const { roomId } = await res.json();
@@ -72,6 +81,25 @@ export default function LobbyPage() {
             placeholder="Player"
             maxLength={24}
           />
+        </div>
+
+        <div style={styles.field}>
+          <label style={styles.label}>Table size</label>
+          <div style={styles.seatRow}>
+            {[2, 3, 4, 5, 6].map((n) => (
+              <button
+                key={n}
+                style={{
+                  ...styles.seatBtn,
+                  ...(maxPlayers === n ? styles.seatBtnActive : {}),
+                }}
+                onClick={() => setMaxPlayers(n)}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+          <p style={styles.seatHint}>{PLAYER_COUNT_HINTS[maxPlayers]}</p>
         </div>
 
         <button style={styles.primaryBtn} onClick={createRoom} disabled={loading}>
@@ -168,5 +196,30 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#fff',
     cursor: 'pointer',
     fontSize: 13,
+  },
+  seatRow: {
+    display: 'flex',
+    gap: 8,
+  },
+  seatBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    border: '1px solid rgba(255,255,255,0.25)',
+    background: 'rgba(255,255,255,0.06)',
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 600,
+    cursor: 'pointer',
+    transition: 'background 0.15s, border-color 0.15s',
+  },
+  seatBtnActive: {
+    background: '#4f46e5',
+    border: '1px solid #6366f1',
+  },
+  seatHint: {
+    margin: '6px 0 0',
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.4)',
   },
 };

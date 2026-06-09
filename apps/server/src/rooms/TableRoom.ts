@@ -6,6 +6,7 @@ import {
   IntentType,
   MAX_INTENTS_PER_SECOND,
   MAX_PLAYERS,
+  MIN_PLAYERS,
   ServerMessageType,
   ShuffleIntensity,
   ShuffleStyle,
@@ -52,11 +53,15 @@ export class TableRoom extends Room<RoomStateSchema> {
   /** Structured record of every rejected intent for the audit trail. */
   private rejectedIntents: Array<{ timestamp: number; sessionId: string; errorCode: ErrorCode; message: string }> = [];
 
-  onCreate(): void {
+  onCreate(options?: { maxPlayers?: number }): void {
+    if (options?.maxPlayers !== undefined) {
+      const clamped = Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, Math.floor(options.maxPlayers)));
+      this.maxClients = clamped;
+    }
     this.setState(new RoomStateSchema());
     this.initDeck();
     this.registerIntentHandlers();
-    logger.info(`[TableRoom] room ${this.roomId} created`);
+    logger.info(`[TableRoom] room ${this.roomId} created (max ${this.maxClients} players)`);
   }
 
   onJoin(client: Client, options?: { displayName?: string; maskId?: string }): void {

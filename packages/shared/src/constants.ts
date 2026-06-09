@@ -1,5 +1,6 @@
 import { Rank, Suit } from './enums';
 
+export const MIN_PLAYERS = 2;
 export const MAX_PLAYERS = 6;
 export const SEATS = [0, 1, 2, 3, 4, 5] as const;
 export type SeatIndex = (typeof SEATS)[number];

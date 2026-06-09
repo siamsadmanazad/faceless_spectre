@@ -55,16 +55,16 @@ async function main(): Promise<void> {
   });
 
   /** Join or create a room and return a seat reservation for direct WS connect. */
-  app.post<{ Body: { roomId?: string; displayName?: string; maskId?: string } }>(
+  app.post<{ Body: { roomId?: string; displayName?: string; maskId?: string; maxPlayers?: number } }>(
     '/rooms/join',
     async (req, reply) => {
       try {
-        const { roomId, displayName, maskId } = req.body ?? {};
-        const options = { displayName, maskId };
+        const { roomId, displayName, maskId, maxPlayers } = req.body ?? {};
+        const joinOptions = { displayName, maskId };
 
         const reservation = roomId
-          ? await matchMaker.joinById(roomId, options)
-          : await matchMaker.joinOrCreate('table_room', options);
+          ? await matchMaker.joinById(roomId, joinOptions)
+          : await matchMaker.create('table_room', { ...joinOptions, maxPlayers });
 
         return reply.code(200).send({
           roomId: reservation.room.roomId,
