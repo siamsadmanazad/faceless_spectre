@@ -2,7 +2,9 @@
   "name": "faceless-spectre",
   "private": true,
   "scripts": {
+    "predev": "bash scripts/reap-stale-chrome.sh",
     "dev": "turbo dev",
+    "reap-chrome": "bash scripts/reap-stale-chrome.sh",
     "build": "turbo build",
     "lint": "turbo lint",
     "test": "turbo test",

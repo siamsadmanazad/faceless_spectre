@@ -17,9 +17,12 @@ const ICE_SERVERS: RTCIceServer[] = [
 interface UseVoiceArgs {
   roomRef: React.RefObject<Room | null>;
   sendIntent: (type: IntentType, payload?: Record<string, unknown>) => void;
+  /** Whether the game tab is active. When false, voice is fully suspended
+   *  (mic stops transmitting, incoming audio is silenced) to free resources. */
+  active?: boolean;
 }
 
-export function useVoice({ roomRef, sendIntent }: UseVoiceArgs) {
+export function useVoice({ roomRef, sendIntent, active = true }: UseVoiceArgs) {
   const localPlayerId = useRoomStore((s) => s.localPlayerId);
   const players = useRoomStore((s) => s.players);
   const isMuted = useRoomStore((s) => s.isMuted);
@@ -29,6 +32,9 @@ export function useVoice({ roomRef, sendIntent }: UseVoiceArgs) {
   const localStream = useRef<MediaStream | null>(null);
   const peerConnections = useRef<Map<string, RTCPeerConnection>>(new Map());
   const seenPlayerIds = useRef<Set<string>>(new Set());
+  // Mirror of `active` for callbacks (createPC/ontrack) that close over a
+  // stale value — they read the ref to set the initial muted state correctly.
+  const activeRef = useRef(active);
 
   // Request microphone access once on mount
   useEffect(() => {
@@ -41,6 +47,11 @@ export function useVoice({ roomRef, sendIntent }: UseVoiceArgs) {
           return;
         }
         localStream.current = stream;
+        // Apply the current gate immediately — the stream may arrive while the
+        // tab is already hidden (joined in a background tab) or while muted.
+        stream.getAudioTracks().forEach((t) => {
+          t.enabled = activeRef.current && !useRoomStore.getState().isMuted;
+        });
         setAudioEnabled(true);
       })
       .catch(() => {
@@ -84,6 +95,9 @@ export function useVoice({ roomRef, sendIntent }: UseVoiceArgs) {
           audio.autoplay = true;
           document.body.appendChild(audio);
         }
+        // Start silenced if the tab is currently inactive; the visibility
+        // effect below restores it when the tab becomes active again.
+        audio.muted = !activeRef.current;
         audio.srcObject = streams[0];
       };
 
@@ -178,12 +192,26 @@ export function useVoice({ roomRef, sendIntent }: UseVoiceArgs) {
     });
   }, [players, localPlayerId, createOffer]);
 
-  const toggleMute = useCallback(() => {
-    const next = !isMuted;
+  // Single authority for actual media state. The mic transmits only when the
+  // tab is active AND the player hasn't manually muted; remote audio plays only
+  // when the tab is active. Re-runs on tab activation, manual mute toggle, and
+  // when peers join/leave (so newly-connected audio elements get gated too).
+  useEffect(() => {
+    activeRef.current = active;
+
     localStream.current?.getAudioTracks().forEach((t) => {
-      t.enabled = !next;
+      t.enabled = active && !isMuted;
     });
-    setMuted(next);
+
+    peerConnections.current.forEach((_pc, peerId) => {
+      const el = document.getElementById(`audio-${peerId}`) as HTMLAudioElement | null;
+      if (el) el.muted = !active;
+    });
+  }, [active, isMuted, players]);
+
+  // Manual mute just records intent; the effect above enforces the track state.
+  const toggleMute = useCallback(() => {
+    setMuted(!isMuted);
   }, [isMuted, setMuted]);
 
   const audioEnabled = useRoomStore((s) => s.audioEnabled);
