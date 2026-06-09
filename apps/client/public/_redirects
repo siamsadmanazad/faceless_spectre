@@ -1,0 +1,5 @@
+# Cloudflare Pages rewrite rules.
+# Any /room/<id> request is served by the pre-rendered placeholder page while
+# keeping the original URL intact. RoomClient reads the real room ID via
+# usePathname() at runtime.
+/room/*  /room/__room__  200

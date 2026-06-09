@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ['@phantom-table/shared'],
+  output: 'export',
+  transpilePackages: ['@faceless-spectre/shared'],
+  images: { unoptimized: true },
 };
 
 module.exports = nextConfig;

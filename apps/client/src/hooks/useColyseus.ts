@@ -66,16 +66,13 @@ export function useColyseus(roomId: string, displayName?: string) {
         // eslint-disable-next-line prefer-const
         let room!: Room;
 
-        // Attempt reconnection using a saved session before falling back to a fresh join
+        // Attempt reconnection using a saved token before falling back to a fresh join
         const saved = localStorage.getItem('fs_session');
         let reconnected = false;
         if (saved) {
           try {
-            const { roomId: savedRoomId, sessionId } = JSON.parse(saved) as {
-              roomId: string;
-              sessionId: string;
-            };
-            room = await client.reconnect(savedRoomId, sessionId);
+            const { reconnectionToken } = JSON.parse(saved) as { reconnectionToken: string };
+            room = await client.reconnect(reconnectionToken);
             reconnected = true;
           } catch {
             localStorage.removeItem('fs_session');
@@ -106,8 +103,8 @@ export function useColyseus(roomId: string, displayName?: string) {
           return;
         }
 
-        // Persist session for reconnection on tab refresh / network drop
-        localStorage.setItem('fs_session', JSON.stringify({ roomId: room.id, sessionId: room.sessionId }));
+        // Persist reconnection token so the browser can resume after a tab refresh / network drop
+        localStorage.setItem('fs_session', JSON.stringify({ reconnectionToken: room.reconnectionToken }));
 
         roomRef.current = room;
         setRoomId(room.id);

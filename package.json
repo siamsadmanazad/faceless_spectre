@@ -7,7 +7,8 @@
     "lint": "turbo lint",
     "test": "turbo test",
     "db:up": "docker-compose up -d",
-    "db:down": "docker-compose down"
+    "db:down": "docker-compose down",
+    "load-test": "node scripts/load-test.mjs"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^7.18.0",

@@ -1,14 +1,16 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { TableScene } from '../../../components/scene/TableScene';
 
-interface RoomClientProps {
-  roomId: string;
-}
-
-export function RoomClient({ roomId }: RoomClientProps) {
-  const params = useSearchParams();
-  const displayName = params.get('name') ?? 'Player';
+export function RoomClient() {
+  // Read roomId from the actual browser URL path at runtime.
+  // CF Pages rewrites /room/<id> → the pre-rendered placeholder page, so
+  // params.roomId would be the placeholder string. usePathname() gives the
+  // real URL the user is visiting, from which we extract the actual room ID.
+  const pathname = usePathname();
+  const roomId = pathname.split('/').filter(Boolean).pop() ?? '';
+  const searchParams = useSearchParams();
+  const displayName = searchParams.get('name') ?? 'Player';
   return <TableScene roomId={roomId} displayName={displayName} />;
 }
