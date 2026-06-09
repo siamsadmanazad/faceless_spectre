@@ -20,6 +20,7 @@ import {
   type DealIntent,
   type GrabIntent,
   type ReleaseIntent,
+  type PresenceIntent,
 } from '@faceless-spectre/shared';
 import { RoomStateSchema } from '../state/RoomStateSchema';
 import { CardSchema } from '../state/CardSchema';
@@ -71,6 +72,11 @@ export class TableRoom extends Room<RoomStateSchema> {
 
   onLeave(client: Client, _consented: boolean): void {
     this.intentCounts.delete(client.sessionId);
+    // Clear ghost hand for this player on all remaining clients
+    this.broadcast(ServerMessageType.Presence, {
+      type: ServerMessageType.Presence,
+      presences: [{ playerId: client.sessionId, hand: null, maskId: '' }],
+    });
     const player = this.state.players.get(client.sessionId);
     if (player) {
       player.connected = false;
@@ -161,6 +167,10 @@ export class TableRoom extends Room<RoomStateSchema> {
   // ── Intent handlers ────────────────────────────────────────────────────────
 
   private registerIntentHandlers(): void {
+    this.onMessage(IntentType.Presence, (client, msg: PresenceIntent) => {
+      this.handlePresence(client, msg);
+    });
+
     this.onMessage(IntentType.Grab, (client, msg: GrabIntent) => {
       this.handleGrab(client, msg.cardId);
     });
@@ -201,6 +211,25 @@ export class TableRoom extends Room<RoomStateSchema> {
       logger.warn(`[TableRoom] unknown intent "${type}" from ${client.sessionId}`);
       this.rejectIntent(client, ErrorCode.UnknownIntent, `Unknown intent: ${type}`);
     });
+  }
+
+  private handlePresence(client: Client, intent: PresenceIntent): void {
+    // No rate limit — presence has its own client-side 50ms throttle (PRESENCE_THROTTLE_MS).
+    // Relay to all other clients immediately; never stored in room state.
+    try {
+      requireSeat(this.state.players, client.sessionId);
+      this.broadcast(
+        ServerMessageType.Presence,
+        {
+          type: ServerMessageType.Presence,
+          presences: [{ playerId: client.sessionId, hand: intent.hand, maskId: intent.maskId }],
+        },
+        { except: client },
+      );
+    } catch (err) {
+      if (err instanceof IntentError) this.rejectIntent(client, err.code, err.message);
+      else throw err;
+    }
   }
 
   private handleGrab(client: Client, cardId: string): void {
