@@ -3,31 +3,40 @@ import http from 'node:http';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { Server as ColyseusServer, matchMaker } from 'colyseus';
-import { Client as PgClient } from 'pg';
+import { RedisPresence } from '@colyseus/redis-presence';
+import { RedisDriver } from '@colyseus/redis-driver';
 import Redis from 'ioredis';
 import { TableRoom } from './rooms/TableRoom';
 import { auditStore } from './engine/AuditStore';
 import { verifyReplay } from './engine/replayVerifier';
+import { pgPool } from './db';
 
 const PORT = Number(process.env.PORT ?? 2567);
-
-async function pingPostgres(): Promise<void> {
-  const client = new PgClient({ connectionString: process.env.DATABASE_URL });
-  await client.connect();
-  await client.query('SELECT 1');
-  await client.end();
-  console.log('[server] Connected to Postgres');
-}
+const REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379';
 
 async function pingRedis(): Promise<void> {
-  const redis = new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379');
+  const redis = new Redis(REDIS_URL);
   await redis.ping();
   redis.disconnect();
   console.log('[server] Connected to Redis');
 }
 
 async function main(): Promise<void> {
-  await Promise.all([pingPostgres(), pingRedis()]);
+  // Verify connectivity
+  await Promise.all([
+    pgPool.query('SELECT 1').then(() => console.log('[server] Connected to Postgres')),
+    pingRedis(),
+  ]);
+
+  // Create audit table if it doesn't exist
+  await pgPool.query(`
+    CREATE TABLE IF NOT EXISTS room_audits (
+      room_id TEXT PRIMARY KEY,
+      history JSONB NOT NULL DEFAULT '[]',
+      rejected_intents JSONB NOT NULL DEFAULT '[]',
+      finalized_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
 
   const app = Fastify({ logger: true });
 
@@ -68,17 +77,37 @@ async function main(): Promise<void> {
     },
   );
 
-  /** Returns the full audit trail for a room, including inline replay verification. */
+  /** Returns the full audit trail for a room, including inline replay verification.
+   *  Checks in-memory AuditStore first (live rooms), then falls back to Postgres (closed rooms). */
   app.get<{ Params: { roomId: string } }>('/rooms/:roomId/audit', async (req, reply) => {
     const { roomId } = req.params;
-    const audit = auditStore.get(roomId);
-    if (!audit) return reply.code(404).send({ error: 'Room audit not found' });
+
+    let audit = auditStore.get(roomId);
+
+    if (!audit) {
+      const result = await pgPool.query(
+        'SELECT room_id, history, rejected_intents, finalized_at FROM room_audits WHERE room_id = $1',
+        [roomId],
+      );
+      if (result.rows.length === 0) return reply.code(404).send({ error: 'Room audit not found' });
+      const r = result.rows[0];
+      audit = {
+        roomId: r.room_id,
+        history: r.history,
+        rejectedIntents: r.rejected_intents,
+        snapshotAt: new Date(r.finalized_at).getTime(),
+      };
+    }
+
     const verification = verifyReplay(audit.history);
     return reply.send({ ...audit, verification });
   });
 
   // Register TableRoom type with matchMaker before first request arrives
-  const gameServer = new ColyseusServer();
+  const gameServer = new ColyseusServer({
+    presence: new RedisPresence(REDIS_URL),
+    driver: new RedisDriver(REDIS_URL),
+  });
   gameServer.define('table_room', TableRoom);
 
   // Listen first so Fastify's request handler is registered on app.server

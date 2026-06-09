@@ -77,24 +77,43 @@ export class TableRoom extends Room<RoomStateSchema> {
     logger.info(`[TableRoom] ${player.displayName} joined room ${this.roomId} at seat ${seat}`);
   }
 
-  onLeave(client: Client, _consented: boolean): void {
+  async onLeave(client: Client, consented: boolean): Promise<void> {
     this.intentCounts.delete(client.sessionId);
     // Clear ghost hand for this player on all remaining clients
     this.broadcast(ServerMessageType.Presence, {
       type: ServerMessageType.Presence,
       presences: [{ playerId: client.sessionId, hand: null, maskId: '' }],
     });
+
     const player = this.state.players.get(client.sessionId);
-    if (player) {
-      player.connected = false;
+    if (!player) return;
+
+    if (consented) {
       logger.info(`[TableRoom] ${player.displayName} left room ${this.roomId}`);
+      this.removePlayer(client.sessionId);
+      return;
     }
-    this.state.players.delete(client.sessionId);
-    this.returnCardsToNobody(client.sessionId);
+
+    // Unconsentented disconnect — hold seat for 30 seconds
+    player.connected = false;
+    logger.info(`[TableRoom] ${player.displayName} disconnected — holding seat for 30s`);
+    try {
+      await this.allowReconnection(client, 30);
+      player.connected = true;
+      logger.info(`[TableRoom] ${player.displayName} reconnected to room ${this.roomId}`);
+    } catch {
+      logger.info(`[TableRoom] ${player.displayName} reconnection timed out — removing`);
+      this.removePlayer(client.sessionId);
+    }
   }
 
-  onDispose(): void {
+  async onDispose(): Promise<void> {
     this.syncAudit();
+    try {
+      await auditStore.persist(this.roomId);
+    } catch (err) {
+      logger.warn(`[TableRoom] audit persist failed for room ${this.roomId}: ${err instanceof Error ? err.message : err}`);
+    }
     logger.info(`[TableRoom] room ${this.roomId} disposed`);
   }
 
@@ -105,6 +124,19 @@ export class TableRoom extends Room<RoomStateSchema> {
       roomId: this.roomId,
       history: this.deckTruth.history,
       rejectedIntents: this.rejectedIntents,
+    });
+  }
+
+  private removePlayer(sessionId: string): void {
+    this.returnCardsToNobody(sessionId);
+    this.state.players.delete(sessionId);
+    this.syncAudit();
+  }
+
+  private remapSession(oldId: string, newId: string): void {
+    if (oldId === newId) return;
+    this.state.cards.forEach((card: CardSchema) => {
+      if (card.ownerId === oldId) card.ownerId = newId;
     });
   }
 

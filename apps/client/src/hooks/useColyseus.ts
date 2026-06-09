@@ -62,27 +62,52 @@ export function useColyseus(roomId: string, displayName?: string) {
 
     async function connect() {
       try {
-        // Get seat reservation from our Fastify endpoint (bypasses Colyseus HTTP matchmaking)
-        const res = await fetch(`${SERVER_URL}/rooms/join`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ roomId, displayName: displayName ?? 'Player' }),
-        });
+        const client = new Client(SERVER_URL);
+        // eslint-disable-next-line prefer-const
+        let room!: Room;
 
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({ error: 'Server error' }));
-          throw new Error((err as { error?: string }).error ?? 'Failed to join room');
+        // Attempt reconnection using a saved session before falling back to a fresh join
+        const saved = localStorage.getItem('fs_session');
+        let reconnected = false;
+        if (saved) {
+          try {
+            const { roomId: savedRoomId, sessionId } = JSON.parse(saved) as {
+              roomId: string;
+              sessionId: string;
+            };
+            room = await client.reconnect(savedRoomId, sessionId);
+            reconnected = true;
+          } catch {
+            localStorage.removeItem('fs_session');
+          }
         }
 
-        const { seatReservation } = await res.json();
-        if (cancelled) return;
+        if (!reconnected) {
+          // Get seat reservation from our Fastify endpoint (bypasses Colyseus HTTP matchmaking)
+          const res = await fetch(`${SERVER_URL}/rooms/join`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ roomId, displayName: displayName ?? 'Player' }),
+          });
 
-        const client = new Client(SERVER_URL);
-        const room = await client.consumeSeatReservation(seatReservation);
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({ error: 'Server error' }));
+            throw new Error((err as { error?: string }).error ?? 'Failed to join room');
+          }
+
+          const { seatReservation } = await res.json();
+          if (cancelled) return;
+
+          room = await client.consumeSeatReservation(seatReservation);
+        }
+
         if (cancelled) {
           room.leave();
           return;
         }
+
+        // Persist session for reconnection on tab refresh / network drop
+        localStorage.setItem('fs_session', JSON.stringify({ roomId: room.id, sessionId: room.sessionId }));
 
         roomRef.current = room;
         setRoomId(room.id);
@@ -112,6 +137,7 @@ export function useColyseus(roomId: string, displayName?: string) {
         });
 
         room.onLeave(() => {
+          localStorage.removeItem('fs_session');
           setConnected(false);
           clearRoom();
         });
