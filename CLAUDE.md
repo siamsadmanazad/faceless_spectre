@@ -105,7 +105,7 @@ faceless-spectre/
 | **4** | Presence — ghost hands + masks | ✅ Smooth interpolation within bandwidth budget |
 | **5** | Voice — WebRTC over Colyseus signaling | ✅ Peer-to-peer audio; no game-state audio path |
 | **6** | Shuffle & deal UX | ✅ Fairness test still passes with style selectors |
-| **7** | Replay + anti-cheat audit | Audit suite in CI; log replays deterministically |
+| **7** | Replay + anti-cheat audit | ✅ Audit suite in CI; log replays deterministically |
 | **8** | Persistence + horizontal scale | Redis-backed multi-process; reconnection tested |
 | **9** | Deploy | Public URL; 4-player load test within budget |
 | **10** | Poker ruleset *(optional, gate: sandbox must be fun first)* | Full hand to showdown; hole cards stay hidden |

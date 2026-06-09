@@ -109,6 +109,18 @@ When a player disconnects, their ghost hand vanishes immediately.
 
 ---
 
+## Audit & replay
+
+Every deck operation — shuffle, cut, draw, deal — is logged to an in-memory audit trail on the server. Each entry records a timestamp, the acting player, the operation type, a cryptographic seed (for shuffles), and SHA-256 hashes of the deck state before and after. Rejected intents (illegal moves, rate-limit violations) are also recorded with their error codes.
+
+Shuffles are now deterministic: the server generates a 32-byte seed with `crypto.randomBytes`, uses it to drive a SHA-256 counter-mode PRNG for Fisher-Yates, and logs the seed. Given only the seed and the original deck order, the exact shuffle result can be reproduced by anyone — making the audit trail fully verifiable without revealing hidden card data.
+
+The replay verifier (`verifyReplay`) re-applies every logged operation in sequence and recomputes the after-hash at each step. Any mismatch — a tampered hash, a missing seed, a modified cut position — is caught and reported with the failing entry index.
+
+**Audit endpoint:** `GET /rooms/:roomId/audit` returns the full deck history, rejected intents, and an inline `verification` object indicating whether the trail is internally consistent.
+
+---
+
 ## Shuffle styles
 
 Pressing `R` (or the Shuffle button) opens a small panel before anything happens. You pick a style — Overhand, Riffle, Wash, Split, or Casino — and an intensity level. Click Shuffle (or press Enter) and the deck animates accordingly: riffle tilts, overhand stutters, wash sweeps sideways, split pivots on its Y axis, casino spins full rotations. Deal briefly compresses the deck as cards leave.
@@ -150,7 +162,7 @@ Once a card has been revealed, it stays revealed. The server enforces the blinds
 | 4 | Presence — ghost hands + masks in real time (20 Hz, <40 KB/s) | ✅ Done |
 | 5 | Voice — WebRTC over Colyseus signaling relay | ✅ Done |
 | 6 | Shuffle & deal UX — style selector, animation | ✅ Done |
-| 7 | Replay + anti-cheat audit | ⬜ |
+| 7 | Replay + anti-cheat audit | ✅ Done |
 | 8 | Persistence + horizontal scale (Redis-backed) | ⬜ |
 | 9 | Deploy — Cloudflare (client) + stateful host (server) | ⬜ |
 | 10 | Poker ruleset *(only after the sandbox is fun)* | ⬜ |
