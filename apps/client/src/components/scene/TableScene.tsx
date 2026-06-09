@@ -7,6 +7,8 @@ import { Table } from './Table';
 import { DeckStack } from './DeckStack';
 import { PlayerHand } from './PlayerHand';
 import { PlacedCards } from './PlacedCards';
+import { GhostHands } from './GhostHands';
+import { LocalPresenceSender } from './LocalPresenceSender';
 import { useColyseus } from '../../hooks/useColyseus';
 import { useRoomStore } from '../../store/roomStore';
 import { HUD } from '../hud/HUD';
@@ -17,8 +19,11 @@ interface TableSceneProps {
 }
 
 export function TableScene({ roomId, displayName }: TableSceneProps) {
-  const { connected, error, draw, shuffle, deal, grab, release } = useColyseus(roomId, displayName);
+  const { connected, error, draw, shuffle, deal, grab, release, sendPresence } = useColyseus(roomId, displayName);
   const selectedCardId = useRoomStore((s) => s.selectedCardId);
+  const localPlayerId = useRoomStore((s) => s.localPlayerId);
+  const players = useRoomStore((s) => s.players);
+  const maskId = (localPlayerId ? players.get(localPlayerId)?.maskId : undefined) ?? 'faceless';
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -63,6 +68,12 @@ export function TableScene({ roomId, displayName }: TableSceneProps) {
           <DeckStack />
           <PlacedCards grab={grab} selectedCardId={selectedCardId} />
           <PlayerHand grab={grab} release={release} selectedCardId={selectedCardId} />
+          <GhostHands />
+          <LocalPresenceSender
+            sendPresence={sendPresence}
+            maskId={maskId}
+            selectedCardId={selectedCardId}
+          />
 
           {/* Invisible table plane — clicking it releases the selected card */}
           {selectedCardId && (
