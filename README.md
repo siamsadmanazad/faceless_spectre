@@ -57,6 +57,7 @@ No internet required. Fully offline.
 | Click a hand card | Grab it (lifts and glows blue) |
 | Click the table / `Escape` | Release the grabbed card |
 | Click a placed card | Pick it up from the table |
+| `M` | Mute / unmute your microphone |
 | Mouse drag | Orbit the camera around the table |
 | Scroll | Zoom in / out |
 
@@ -107,6 +108,18 @@ When a player disconnects, their ghost hand vanishes immediately.
 
 ---
 
+## Voice
+
+Players hear each other via browser-native WebRTC — audio flows directly between browsers without touching the game server. Colyseus relays only the signaling messages (SDP offers, answers, ICE candidates); once a peer connection is established, the server is out of the audio path entirely.
+
+The mesh topology opens one `RTCPeerConnection` per pair of players. At up to 6 players that is 15 connections total — manageable for an MVP. STUN-only (Google public STUN) handles most NAT setups without a TURN relay.
+
+Press `M` (or click the button in the HUD) to mute. Muting disables the local audio track without closing any peer connections — unmuting is instant.
+
+**SFU upgrade path:** the documented next step for >6 players is replacing the mesh with a selective forwarding unit (mediasoup or LiveKit). The signaling relay in Colyseus does not need to change for that upgrade.
+
+---
+
 ## The memory game
 
 Every card carries a permanent identity. It doesn't change as it moves between the deck, your hand, and the table. When you draw the Ace of Hearts, that card remains the Ace of Hearts whether it's sitting face-down in front of you or eventually turned up for everyone to see.
@@ -126,7 +139,7 @@ Once a card has been revealed, it stays revealed. The server enforces the blinds
 | 2 | 3D table — React Three Fiber, lobby, live deck rendering | ✅ Done |
 | 3 | Free-hand interaction — grab, place, rate limiting | ✅ Done |
 | 4 | Presence — ghost hands + masks in real time (20 Hz, <40 KB/s) | ✅ Done |
-| 5 | Voice — WebRTC over Colyseus signaling relay | ⬜ Next |
+| 5 | Voice — WebRTC over Colyseus signaling relay | ✅ Done |
 | 6 | Shuffle & deal UX — style selector, animation | ⬜ |
 | 7 | Replay + anti-cheat audit | ⬜ |
 | 8 | Persistence + horizontal scale (Redis-backed) | ⬜ |
