@@ -21,6 +21,9 @@ import {
   type GrabIntent,
   type ReleaseIntent,
   type PresenceIntent,
+  type WebRTCOfferIntent,
+  type WebRTCAnswerIntent,
+  type WebRTCIceIntent,
 } from '@faceless-spectre/shared';
 import { RoomStateSchema } from '../state/RoomStateSchema';
 import { CardSchema } from '../state/CardSchema';
@@ -205,6 +208,18 @@ export class TableRoom extends Room<RoomStateSchema> {
 
     this.onMessage(IntentType.Reveal, (client, msg: RevealIntent) => {
       this.handleReveal(client, msg.cardId);
+    });
+
+    this.onMessage(IntentType.WebRTCOffer, (client, msg: WebRTCOfferIntent) => {
+      this.handleWebRTCOffer(client, msg);
+    });
+
+    this.onMessage(IntentType.WebRTCAnswer, (client, msg: WebRTCAnswerIntent) => {
+      this.handleWebRTCAnswer(client, msg);
+    });
+
+    this.onMessage(IntentType.WebRTCIce, (client, msg: WebRTCIceIntent) => {
+      this.handleWebRTCIce(client, msg);
     });
 
     this.onMessage('*', (client, type, _msg) => {
@@ -482,5 +497,30 @@ export class TableRoom extends Room<RoomStateSchema> {
         throw err;
       }
     }
+  }
+
+  // ── WebRTC signaling relay ─────────────────────────────────────────────────
+
+  private relaySignal(
+    fromClient: Client,
+    targetId: string,
+    messageType: ServerMessageType,
+    payload: Record<string, unknown>,
+  ): void {
+    const target = this.clients.find((c) => c.sessionId === targetId);
+    if (!target) return; // peer already left — silently drop
+    target.send(messageType, { ...payload, fromId: fromClient.sessionId });
+  }
+
+  private handleWebRTCOffer(client: Client, msg: WebRTCOfferIntent): void {
+    this.relaySignal(client, msg.targetId, ServerMessageType.WebRTCOffer, { sdp: msg.sdp });
+  }
+
+  private handleWebRTCAnswer(client: Client, msg: WebRTCAnswerIntent): void {
+    this.relaySignal(client, msg.targetId, ServerMessageType.WebRTCAnswer, { sdp: msg.sdp });
+  }
+
+  private handleWebRTCIce(client: Client, msg: WebRTCIceIntent): void {
+    this.relaySignal(client, msg.targetId, ServerMessageType.WebRTCIce, { candidate: msg.candidate });
   }
 }
