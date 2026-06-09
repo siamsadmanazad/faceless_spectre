@@ -163,6 +163,48 @@ Once a card has been revealed, it stays revealed. The server enforces the blinds
 
 ---
 
+## Deploy
+
+The client is a static Next.js export deployed to **Cloudflare Pages**. The game server (Colyseus + Fastify) runs as a Docker container on **Fly.io** — a stateful, long-lived process that cannot be serverless or edge-deployed.
+
+### CI/CD (GitHub Actions)
+
+Every push to `main`:
+1. Runs server tests (`pnpm --filter @faceless-spectre/server test`)
+2. Deploys the server image to Fly.io via `flyctl deploy --remote-only`
+3. Builds the Next.js static export and deploys to Cloudflare Pages via Wrangler
+
+### One-time setup
+
+```bash
+# Server (Fly.io)
+fly apps create faceless-spectre
+fly postgres create --name faceless-spectre-db --region ord
+fly postgres attach --app faceless-spectre faceless-spectre-db   # sets DATABASE_URL
+fly ext redis create --name faceless-spectre-redis               # sets REDIS_URL
+fly secrets list
+
+# GitHub secrets needed:
+#   FLY_API_TOKEN          → fly tokens create deploy
+#   CLOUDFLARE_API_TOKEN   → Cloudflare dashboard → API Tokens
+#   CLOUDFLARE_ACCOUNT_ID  → Cloudflare dashboard (right sidebar)
+#   NEXT_PUBLIC_SERVER_URL → https://faceless-spectre.fly.dev
+```
+
+### Load test
+
+```bash
+# Run against local dev server (pnpm db:up && pnpm dev first)
+pnpm load-test
+
+# Run against production
+SERVER_URL=https://faceless-spectre.fly.dev pnpm load-test
+```
+
+Connects 4 simulated players, runs for 10 seconds, asserts each client stays under 40 KB/s of game-state bandwidth.
+
+---
+
 ## Roadmap
 
 | Phase | Theme | Status |
@@ -176,7 +218,7 @@ Once a card has been revealed, it stays revealed. The server enforces the blinds
 | 6 | Shuffle & deal UX — style selector, animation | ✅ Done |
 | 7 | Replay + anti-cheat audit | ✅ Done |
 | 8 | Persistence + horizontal scale (Redis-backed) | ✅ Done |
-| 9 | Deploy — Cloudflare (client) + stateful host (server) | ⬜ |
+| 9 | Deploy — Cloudflare Pages (client) + Fly.io (server) | ✅ Done |
 | 10 | Poker ruleset *(only after the sandbox is fun)* | ⬜ |
 
 ---

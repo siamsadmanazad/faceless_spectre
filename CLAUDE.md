@@ -107,7 +107,7 @@ faceless-spectre/
 | **6** | Shuffle & deal UX | ✅ Fairness test still passes with style selectors |
 | **7** | Replay + anti-cheat audit | ✅ Audit suite in CI; log replays deterministically |
 | **8** | Persistence + horizontal scale | ✅ Redis-backed multi-process; reconnection tested |
-| **9** | Deploy | Public URL; 4-player load test within budget |
+| **9** | Deploy | ✅ Cloudflare Pages (client) + Fly.io (server); load test script ready |
 | **10** | Poker ruleset *(optional, gate: sandbox must be fun first)* | Full hand to showdown; hole cards stay hidden |
 
 ---
