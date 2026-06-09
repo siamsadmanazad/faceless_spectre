@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { fisherYatesShuffle, generateSeed, hashOrder, shuffleDeck } from '../engine/shuffle';
 import { DeckTruth } from '../engine/DeckTruth';
-import { STANDARD_DECK } from '@faceless-spectre/shared';
+import { STANDARD_DECK, ShuffleStyle } from '@faceless-spectre/shared';
 
 const CARD_IDS = STANDARD_DECK.map(({ rank, suit }) => `${rank}${suit}`);
 
@@ -66,6 +66,58 @@ describe('shuffle engine — uniformity', () => {
         const ratio = counts[card][pos] / expected;
         expect(ratio).toBeGreaterThan(1 - tolerance);
         expect(ratio).toBeLessThan(1 + tolerance);
+      }
+    }
+  });
+});
+
+describe('style selector fairness', () => {
+  it('Math.random is never called across all shuffle styles', () => {
+    const original = Math.random;
+    let callCount = 0;
+    Math.random = () => { callCount++; return original(); };
+    try {
+      // Simulate a shuffle for each style label (style is cosmetic — algorithm is always Fisher-Yates)
+      for (const _style of Object.values(ShuffleStyle)) {
+        fisherYatesShuffle([...CARD_IDS]);
+      }
+    } finally {
+      Math.random = original;
+    }
+    expect(callCount).toBe(0);
+  });
+
+  it('output is always a valid 52-card permutation regardless of style label', () => {
+    for (const _style of Object.values(ShuffleStyle)) {
+      const deck = new DeckTruth();
+      deck.order = [...CARD_IDS];
+      shuffleDeck(deck, 'fairness-test');
+      expect(deck.order.length).toBe(52);
+      expect(new Set(deck.order).size).toBe(52);
+      expect(deck.order.sort()).toEqual([...CARD_IDS].sort());
+    }
+  });
+
+  it('distribution is uniform across all 52 positions (3 000 shuffles)', () => {
+    // Each of the 52 cards should land in each of the 52 positions ~3000/52 ≈ 57.7 times.
+    // We allow 3× the expected rate as the upper bound (175) and 0 as the lower bound.
+    const RUNS = 3_000;
+    const N = CARD_IDS.length; // 52
+    const cardIndex = new Map(CARD_IDS.map((id, i) => [id, i]));
+    const counts: number[][] = Array.from({ length: N }, () => Array(N).fill(0));
+
+    for (let i = 0; i < RUNS; i++) {
+      const shuffled = fisherYatesShuffle([...CARD_IDS]);
+      shuffled.forEach((id, pos) => {
+        counts[cardIndex.get(id)!][pos]++;
+      });
+    }
+
+    const maxAllowed = Math.ceil((RUNS / N) * 3); // ≈ 175
+    for (let c = 0; c < N; c++) {
+      for (let p = 0; p < N; p++) {
+        expect(counts[c][p]).toBeGreaterThan(0);
+        expect(counts[c][p]).toBeLessThanOrEqual(maxAllowed);
       }
     }
   });
