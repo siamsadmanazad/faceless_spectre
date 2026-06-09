@@ -7,7 +7,13 @@ import { CardState } from '@faceless-spectre/shared';
 const FAN_RADIUS = 2.8;
 const FAN_ARC = Math.PI * 0.5; // 90° spread
 
-export function PlayerHand() {
+interface PlayerHandProps {
+  grab: (cardId: string) => void;
+  release: (cardId: string) => void;
+  selectedCardId: string | null;
+}
+
+export function PlayerHand({ grab, release, selectedCardId }: PlayerHandProps) {
   const localPlayerId = useRoomStore((s) => s.localPlayerId);
   const cards = useRoomStore((s) => s.cards);
 
@@ -29,15 +35,28 @@ export function PlayerHand() {
         const z = (1 - Math.cos(t)) * 0.4;
         const rotY = -t * 0.6;
         const faceUp = canSeeFace(card);
+        const selected = selectedCardId === card.id;
+        // Lift selected card slightly above the fan
+        const yOffset = selected ? 0.15 : 0.02 + i * 0.003;
 
         return (
           <CardMesh
             key={card.id}
-            position={[x, 0.02 + i * 0.003, z]}
+            position={[x, yOffset, z]}
             rotation={[-Math.PI / 2, 0, rotY]}
             rank={card.rank}
             suit={card.suit}
             faceUp={faceUp}
+            highlighted={selected}
+            isSelected={selected}
+            onClick={() => {
+              if (selected) {
+                release(card.id);
+              } else {
+                if (selectedCardId) release(selectedCardId);
+                grab(card.id);
+              }
+            }}
           />
         );
       })}

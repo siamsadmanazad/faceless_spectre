@@ -8,6 +8,7 @@ import { DeckStack } from './DeckStack';
 import { PlayerHand } from './PlayerHand';
 import { PlacedCards } from './PlacedCards';
 import { useColyseus } from '../../hooks/useColyseus';
+import { useRoomStore } from '../../store/roomStore';
 import { HUD } from '../hud/HUD';
 
 interface TableSceneProps {
@@ -16,7 +17,8 @@ interface TableSceneProps {
 }
 
 export function TableScene({ roomId, displayName }: TableSceneProps) {
-  const { connected, error, draw, shuffle, deal } = useColyseus(roomId, displayName);
+  const { connected, error, draw, shuffle, deal, grab, release } = useColyseus(roomId, displayName);
+  const selectedCardId = useRoomStore((s) => s.selectedCardId);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -25,11 +27,14 @@ export function TableScene({ roomId, displayName }: TableSceneProps) {
         case 'd': draw(); break;
         case 'r': shuffle(); break;
         case 'enter': deal(5); break;
+        case 'escape':
+          if (selectedCardId) release(selectedCardId);
+          break;
       }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [draw, shuffle, deal]);
+  }, [draw, shuffle, deal, release, selectedCardId]);
 
   if (error) {
     return (
@@ -56,8 +61,20 @@ export function TableScene({ roomId, displayName }: TableSceneProps) {
           <Environment preset="apartment" />
           <Table />
           <DeckStack />
-          <PlacedCards />
-          <PlayerHand />
+          <PlacedCards grab={grab} selectedCardId={selectedCardId} />
+          <PlayerHand grab={grab} release={release} selectedCardId={selectedCardId} />
+
+          {/* Invisible table plane — clicking it releases the selected card */}
+          {selectedCardId && (
+            <mesh
+              rotation={[-Math.PI / 2, 0, 0]}
+              position={[0, 0.005, 0]}
+              onClick={() => release(selectedCardId)}
+            >
+              <planeGeometry args={[8, 5]} />
+              <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+            </mesh>
+          )}
         </Suspense>
 
         <OrbitControls
