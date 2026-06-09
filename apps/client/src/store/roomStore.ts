@@ -52,6 +52,10 @@ interface RoomState {
   clearAnimation: (cardId: string) => void;
   upsertPresence: (payload: PresencePayload) => void;
   removePresence: (playerId: string) => void;
+  isMuted: boolean;
+  audioEnabled: boolean;
+  setMuted: (v: boolean) => void;
+  setAudioEnabled: (v: boolean) => void;
   clearRoom: () => void;
 }
 
@@ -65,12 +69,16 @@ export const useRoomStore = create<RoomState>((set) => ({
   selectedCardId: null,
   activeAnimations: new Map(),
   presences: new Map(),
+  isMuted: false,
+  audioEnabled: false,
 
   setRoomId: (id) => set({ roomId: id }),
   setLocalPlayerId: (id) => set({ localPlayerId: id }),
   setDeckSize: (n) => set({ deckSize: n }),
   setPhase: (p) => set({ phase: p }),
   setSelectedCard: (id) => set({ selectedCardId: id }),
+  setMuted: (v) => set({ isMuted: v }),
+  setAudioEnabled: (v) => set({ audioEnabled: v }),
 
   handleAnimationCommand: (cmd) =>
     set((s) => {
@@ -146,6 +154,8 @@ export const useRoomStore = create<RoomState>((set) => ({
       selectedCardId: null,
       activeAnimations: new Map(),
       presences: new Map(),
+      isMuted: false,
+      audioEnabled: false,
     }),
 }));
 

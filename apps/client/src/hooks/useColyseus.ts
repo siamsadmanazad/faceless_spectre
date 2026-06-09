@@ -202,5 +202,5 @@ export function useColyseus(roomId: string, displayName?: string) {
     [sendIntent],
   );
 
-  return { connected, error, draw, shuffle, deal, grab, release, sendPresence, sendIntent };
+  return { connected, error, draw, shuffle, deal, grab, release, sendPresence, sendIntent, roomRef };
 }

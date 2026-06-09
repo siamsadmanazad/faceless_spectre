@@ -7,9 +7,12 @@ interface HUDProps {
   draw: () => void;
   shuffle: () => void;
   deal: () => void;
+  isMuted: boolean;
+  toggleMute: () => void;
+  audioEnabled: boolean;
 }
 
-export function HUD({ connected, draw, shuffle, deal }: HUDProps) {
+export function HUD({ connected, draw, shuffle, deal, isMuted, toggleMute, audioEnabled }: HUDProps) {
   const deckSize = useRoomStore((s) => s.deckSize);
   const players = useRoomStore((s) => s.players);
   const localPlayerId = useRoomStore((s) => s.localPlayerId);
@@ -42,6 +45,13 @@ export function HUD({ connected, draw, shuffle, deal }: HUDProps) {
         <button style={styles.btn} onClick={deal} title="[Enter]">
           Deal 5 <kbd>↵</kbd>
         </button>
+        {audioEnabled ? (
+          <button style={styles.btn} onClick={toggleMute} title="[M]">
+            {isMuted ? 'Unmute' : 'Mute'} <kbd>M</kbd>
+          </button>
+        ) : (
+          <span style={styles.noMic}>Mic unavailable</span>
+        )}
       </div>
 
       {/* Player list */}
@@ -133,4 +143,13 @@ const styles: Record<string, React.CSSProperties> = {
     userSelect: 'none',
     pointerEvents: 'none',
   },
+  noMic: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '10px 20px',
+    fontSize: 13,
+    fontFamily: 'sans-serif',
+    color: 'rgba(255,255,255,0.35)',
+    userSelect: 'none',
+  } as React.CSSProperties,
 };

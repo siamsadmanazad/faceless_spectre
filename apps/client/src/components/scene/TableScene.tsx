@@ -10,6 +10,7 @@ import { PlacedCards } from './PlacedCards';
 import { GhostHands } from './GhostHands';
 import { LocalPresenceSender } from './LocalPresenceSender';
 import { useColyseus } from '../../hooks/useColyseus';
+import { useVoice } from '../../hooks/useVoice';
 import { useRoomStore } from '../../store/roomStore';
 import { HUD } from '../hud/HUD';
 
@@ -19,7 +20,8 @@ interface TableSceneProps {
 }
 
 export function TableScene({ roomId, displayName }: TableSceneProps) {
-  const { connected, error, draw, shuffle, deal, grab, release, sendPresence } = useColyseus(roomId, displayName);
+  const { connected, error, draw, shuffle, deal, grab, release, sendPresence, sendIntent, roomRef } = useColyseus(roomId, displayName);
+  const { isMuted, toggleMute, audioEnabled } = useVoice({ roomRef, sendIntent });
   const selectedCardId = useRoomStore((s) => s.selectedCardId);
   const localPlayerId = useRoomStore((s) => s.localPlayerId);
   const players = useRoomStore((s) => s.players);
@@ -35,11 +37,12 @@ export function TableScene({ roomId, displayName }: TableSceneProps) {
         case 'escape':
           if (selectedCardId) release(selectedCardId);
           break;
+        case 'm': toggleMute(); break;
       }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [draw, shuffle, deal, release, selectedCardId]);
+  }, [draw, shuffle, deal, release, selectedCardId, toggleMute]);
 
   if (error) {
     return (
@@ -98,7 +101,7 @@ export function TableScene({ roomId, displayName }: TableSceneProps) {
         {process.env.NODE_ENV === 'development' && <Stats />}
       </Canvas>
 
-      <HUD connected={connected} draw={draw} shuffle={shuffle} deal={() => deal(5)} />
+      <HUD connected={connected} draw={draw} shuffle={shuffle} deal={() => deal(5)} isMuted={isMuted} toggleMute={toggleMute} audioEnabled={audioEnabled} />
 
       {!connected && !error && (
         <div style={styles.connecting}>Connecting to table…</div>
