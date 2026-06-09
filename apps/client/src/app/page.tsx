@@ -53,7 +53,11 @@ export default function LobbyPage() {
         body: JSON.stringify({ displayName: name, maxPlayers }),
       });
       if (!res.ok) throw new Error('Failed to create room');
-      const { roomId } = await res.json();
+      const { roomId, seatReservation } = await res.json();
+      // Hand the reservation directly to useColyseus so it doesn't need a
+      // second HTTP round-trip — which can race against Colyseus auto-disposing
+      // the newly-created (still-empty) room.
+      sessionStorage.setItem(`fs_reservation_${roomId}`, JSON.stringify(seatReservation));
       router.push(`/room/${roomId}?name=${encodeURIComponent(name)}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error');

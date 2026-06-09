@@ -66,22 +66,48 @@ export function useColyseus(roomId: string, displayName?: string) {
         const client = new Client(SERVER_URL);
         // eslint-disable-next-line prefer-const
         let room!: Room;
+        let joined = false;
 
-        // Attempt reconnection using a saved token before falling back to a fresh join
-        const saved = localStorage.getItem('fs_session');
-        let reconnected = false;
-        if (saved) {
+        // 1. Consume a seat reservation left by the lobby (freshly created room).
+        //    This avoids a second HTTP round-trip and the race where Colyseus
+        //    auto-disposes an empty room before we call joinById.
+        const reservationKey = `fs_reservation_${roomId}`;
+        const pendingJson = sessionStorage.getItem(reservationKey);
+        if (pendingJson) {
+          sessionStorage.removeItem(reservationKey);
           try {
-            const { reconnectionToken } = JSON.parse(saved) as { reconnectionToken: string };
-            room = await client.reconnect(reconnectionToken);
-            reconnected = true;
+            room = await client.consumeSeatReservation(JSON.parse(pendingJson));
+            joined = true;
           } catch {
-            localStorage.removeItem('fs_session');
+            // reservation expired — fall through to fresh join below
           }
         }
 
-        if (!reconnected) {
-          // Get seat reservation from our Fastify endpoint (bypasses Colyseus HTTP matchmaking)
+        // 2. Reconnect using a saved token, but only for the exact same room.
+        //    Ignoring a token for a different room prevents connecting to a
+        //    stale session and leaving the intended room orphaned.
+        if (!joined) {
+          const saved = localStorage.getItem('fs_session');
+          if (saved) {
+            try {
+              const { roomId: savedRoomId, reconnectionToken } = JSON.parse(saved) as {
+                roomId: string;
+                reconnectionToken: string;
+              };
+              if (savedRoomId === roomId) {
+                room = await client.reconnect(reconnectionToken);
+                joined = true;
+              } else {
+                localStorage.removeItem('fs_session');
+              }
+            } catch {
+              localStorage.removeItem('fs_session');
+            }
+          }
+        }
+
+        // 3. Fresh join as final fallback (joining an existing room from the lobby list).
+        if (!joined) {
           const res = await fetch(`${SERVER_URL}/rooms/join`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -104,8 +130,9 @@ export function useColyseus(roomId: string, displayName?: string) {
           return;
         }
 
-        // Persist reconnection token so the browser can resume after a tab refresh / network drop
-        localStorage.setItem('fs_session', JSON.stringify({ reconnectionToken: room.reconnectionToken }));
+        // Persist reconnection token with its roomId so future reconnect attempts
+        // can verify they're targeting the right room.
+        localStorage.setItem('fs_session', JSON.stringify({ roomId: room.id, reconnectionToken: room.reconnectionToken }));
 
         roomRef.current = room;
         setRoomId(room.id);
