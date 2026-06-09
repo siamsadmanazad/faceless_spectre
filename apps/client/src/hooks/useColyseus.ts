@@ -2,7 +2,13 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Client, Room } from 'colyseus.js';
-import { IntentType, ShuffleStyle, ShuffleIntensity } from '@faceless-spectre/shared';
+import {
+  IntentType,
+  ServerMessageType,
+  ShuffleStyle,
+  ShuffleIntensity,
+  type AnimationCommand,
+} from '@faceless-spectre/shared';
 import { useRoomStore, CardView, PlayerView } from '../store/roomStore';
 
 const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL ?? 'http://localhost:2567';
@@ -43,6 +49,7 @@ export function useColyseus(roomId: string, displayName?: string) {
     setPhase,
     upsertCard,
     upsertPlayer,
+    setSelectedCard,
     clearRoom,
   } = useRoomStore();
 
@@ -84,6 +91,11 @@ export function useColyseus(roomId: string, displayName?: string) {
         // Listen for state patches
         room.onStateChange((state: unknown) => {
           syncFullState(state as Record<string, unknown>);
+        });
+
+        // Receive animation commands and store them for scene components to consume
+        room.onMessage(ServerMessageType.AnimationCommand, (msg: AnimationCommand) => {
+          useRoomStore.getState().handleAnimationCommand(msg);
         });
 
         room.onLeave(() => {
@@ -151,5 +163,21 @@ export function useColyseus(roomId: string, displayName?: string) {
     [sendIntent],
   );
 
-  return { connected, error, draw, shuffle, deal, sendIntent };
+  const grab = useCallback(
+    (cardId: string) => {
+      sendIntent(IntentType.Grab, { cardId });
+      setSelectedCard(cardId);
+    },
+    [sendIntent, setSelectedCard],
+  );
+
+  const release = useCallback(
+    (cardId: string) => {
+      sendIntent(IntentType.Release, { cardId });
+      setSelectedCard(null);
+    },
+    [sendIntent, setSelectedCard],
+  );
+
+  return { connected, error, draw, shuffle, deal, grab, release, sendIntent };
 }
