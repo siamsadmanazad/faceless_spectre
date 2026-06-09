@@ -30,6 +30,7 @@ import { CardSchema } from '../state/CardSchema';
 import { PlayerSchema } from '../state/PlayerSchema';
 import { DeckTruth } from '../engine/DeckTruth';
 import { cutDeck, hashOrder, shuffleDeck } from '../engine/shuffle';
+import { auditStore } from '../engine/AuditStore';
 import { assertLegalTransition } from '../engine/stateMachine';
 import {
   IntentError,
@@ -47,6 +48,9 @@ export class TableRoom extends Room<RoomStateSchema> {
 
   /** Per-session intent rate-limit counters. Fixed-window, 1-second windows. */
   private intentCounts = new Map<string, { count: number; windowStart: number }>();
+
+  /** Structured record of every rejected intent for the audit trail. */
+  private rejectedIntents: Array<{ timestamp: number; sessionId: string; errorCode: ErrorCode; message: string }> = [];
 
   onCreate(): void {
     this.setState(new RoomStateSchema());
@@ -90,10 +94,19 @@ export class TableRoom extends Room<RoomStateSchema> {
   }
 
   onDispose(): void {
+    this.syncAudit();
     logger.info(`[TableRoom] room ${this.roomId} disposed`);
   }
 
   // ── Private helpers ────────────────────────────────────────────────────────
+
+  private syncAudit(): void {
+    auditStore.upsert(this.roomId, {
+      roomId: this.roomId,
+      history: this.deckTruth.history,
+      rejectedIntents: this.rejectedIntents,
+    });
+  }
 
   private initDeck(): void {
     this.deckTruth.order = [];
@@ -120,9 +133,11 @@ export class TableRoom extends Room<RoomStateSchema> {
       timestamp: Date.now(),
       actor: 'system',
       action: 'create',
+      initialOrder: [...this.deckTruth.order],
       beforeHash: '',
       afterHash: hashOrder(this.deckTruth.order),
     });
+    this.syncAudit();
   }
 
   private nextAvailableSeat(): number {
@@ -148,6 +163,8 @@ export class TableRoom extends Room<RoomStateSchema> {
   private rejectIntent(client: Client, code: ErrorCode, message: string): void {
     client.send(ServerMessageType.Error, { type: ServerMessageType.Error, code, message });
     logger.warn(`[TableRoom] intent rejected from ${client.sessionId}: [${code}] ${message}`);
+    this.rejectedIntents.push({ timestamp: Date.now(), sessionId: client.sessionId, errorCode: code, message });
+    this.syncAudit();
   }
 
   /**
@@ -322,9 +339,11 @@ export class TableRoom extends Room<RoomStateSchema> {
         timestamp: Date.now(),
         actor: client.sessionId,
         action: 'draw',
+        cardIds: drawnIds,
         beforeHash: hashOrder([...drawnIds, ...this.deckTruth.order]),
         afterHash: hashOrder(this.deckTruth.order),
       });
+      this.syncAudit();
 
       this.broadcast(ServerMessageType.AnimationCommand, {
         type: ServerMessageType.AnimationCommand,
@@ -350,6 +369,7 @@ export class TableRoom extends Room<RoomStateSchema> {
       // per-algorithm. See docs/realistic-shuffles.md.
       shuffleDeck(this.deckTruth, client.sessionId);
       this.state.deckSize = this.deckTruth.order.length;
+      this.syncAudit();
 
       this.broadcast(ServerMessageType.AnimationCommand, {
         type: ServerMessageType.AnimationCommand,
@@ -374,6 +394,7 @@ export class TableRoom extends Room<RoomStateSchema> {
       requireSeat(this.state.players, client.sessionId);
       cutDeck(this.deckTruth, client.sessionId, cutAt);
       this.state.deckSize = this.deckTruth.order.length;
+      this.syncAudit();
     } catch (err) {
       if (err instanceof IntentError) {
         this.rejectIntent(client, err.code, err.message);
@@ -421,9 +442,11 @@ export class TableRoom extends Room<RoomStateSchema> {
         timestamp: Date.now(),
         actor: client.sessionId,
         action: 'deal',
-        beforeHash: '',
+        cardIds: dealtIds,
+        beforeHash: hashOrder([...dealtIds, ...this.deckTruth.order]),
         afterHash: hashOrder(this.deckTruth.order),
       });
+      this.syncAudit();
 
       this.broadcast(ServerMessageType.AnimationCommand, {
         type: ServerMessageType.AnimationCommand,

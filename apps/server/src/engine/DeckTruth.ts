@@ -1,11 +1,5 @@
-export interface DeckHistoryEntry {
-  timestamp: number;
-  actor: string;
-  action: 'create' | 'shuffle' | 'deal' | 'draw' | 'cut';
-  seed?: string;
-  beforeHash: string;
-  afterHash: string;
-}
+export type { DeckHistoryEntry } from '@faceless-spectre/shared';
+import type { DeckHistoryEntry } from '@faceless-spectre/shared';
 
 /** Server-only deck state — never serialized or sent to any client. */
 export class DeckTruth {

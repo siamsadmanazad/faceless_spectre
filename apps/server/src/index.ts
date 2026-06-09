@@ -6,6 +6,8 @@ import { Server as ColyseusServer, matchMaker } from 'colyseus';
 import { Client as PgClient } from 'pg';
 import Redis from 'ioredis';
 import { TableRoom } from './rooms/TableRoom';
+import { auditStore } from './engine/AuditStore';
+import { verifyReplay } from './engine/replayVerifier';
 
 const PORT = Number(process.env.PORT ?? 2567);
 
@@ -65,6 +67,15 @@ async function main(): Promise<void> {
       }
     },
   );
+
+  /** Returns the full audit trail for a room, including inline replay verification. */
+  app.get<{ Params: { roomId: string } }>('/rooms/:roomId/audit', async (req, reply) => {
+    const { roomId } = req.params;
+    const audit = auditStore.get(roomId);
+    if (!audit) return reply.code(404).send({ error: 'Room audit not found' });
+    const verification = verifyReplay(audit.history);
+    return reply.send({ ...audit, verification });
+  });
 
   // Register TableRoom type with matchMaker before first request arrives
   const gameServer = new ColyseusServer();
