@@ -39,10 +39,16 @@ export interface CardView {
 export interface DeckHistoryEntry {
   timestamp: number;
   actor: string;
-  action: 'shuffle' | 'deal' | 'draw' | 'cut';
+  action: 'create' | 'shuffle' | 'deal' | 'draw' | 'cut';
   seed?: string;
   beforeHash: string;
   afterHash: string;
+  /** Canonical deck order logged by the 'create' entry — replay starting point. */
+  initialOrder?: string[];
+  /** Position used for a 'cut' operation — required for deterministic replay. */
+  cutAt?: number;
+  /** Card IDs removed from the deck by a 'draw' or 'deal' operation. */
+  cardIds?: string[];
 }
 
 /** Server-only deck truth — never serialized to clients. */
