@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Visibility } from '@faceless-spectre/shared';
+import { AnimationType, Visibility, type AnimationCommand } from '@faceless-spectre/shared';
 
 export interface CardView {
   id: string;
@@ -22,6 +22,12 @@ export interface PlayerView {
   handSize: number;
 }
 
+export interface ActiveAnimation {
+  type: AnimationType;
+  startedAt: number;
+  durationMs: number;
+}
+
 interface RoomState {
   roomId: string | null;
   localPlayerId: string | null;
@@ -29,6 +35,8 @@ interface RoomState {
   deckSize: number;
   cards: Map<string, CardView>;
   players: Map<string, PlayerView>;
+  selectedCardId: string | null;
+  activeAnimations: Map<string, ActiveAnimation>;
 
   setRoomId: (id: string) => void;
   setLocalPlayerId: (id: string) => void;
@@ -38,6 +46,9 @@ interface RoomState {
   removeCard: (id: string) => void;
   upsertPlayer: (player: PlayerView) => void;
   removePlayer: (id: string) => void;
+  setSelectedCard: (id: string | null) => void;
+  handleAnimationCommand: (cmd: AnimationCommand) => void;
+  clearAnimation: (cardId: string) => void;
   clearRoom: () => void;
 }
 
@@ -48,11 +59,31 @@ export const useRoomStore = create<RoomState>((set) => ({
   deckSize: 0,
   cards: new Map(),
   players: new Map(),
+  selectedCardId: null,
+  activeAnimations: new Map(),
 
   setRoomId: (id) => set({ roomId: id }),
   setLocalPlayerId: (id) => set({ localPlayerId: id }),
   setDeckSize: (n) => set({ deckSize: n }),
   setPhase: (p) => set({ phase: p }),
+  setSelectedCard: (id) => set({ selectedCardId: id }),
+
+  handleAnimationCommand: (cmd) =>
+    set((s) => {
+      const next = new Map(s.activeAnimations);
+      const now = Date.now();
+      for (const cardId of cmd.cardIds) {
+        next.set(cardId, { type: cmd.animation, startedAt: now, durationMs: cmd.durationMs });
+      }
+      return { activeAnimations: next };
+    }),
+
+  clearAnimation: (cardId) =>
+    set((s) => {
+      const next = new Map(s.activeAnimations);
+      next.delete(cardId);
+      return { activeAnimations: next };
+    }),
 
   upsertCard: (card) =>
     set((s) => {
@@ -90,6 +121,8 @@ export const useRoomStore = create<RoomState>((set) => ({
       deckSize: 0,
       cards: new Map(),
       players: new Map(),
+      selectedCardId: null,
+      activeAnimations: new Map(),
     }),
 }));
 
