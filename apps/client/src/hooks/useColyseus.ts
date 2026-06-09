@@ -7,7 +7,10 @@ import {
   ServerMessageType,
   ShuffleStyle,
   ShuffleIntensity,
+  PRESENCE_THROTTLE_MS,
   type AnimationCommand,
+  type HandPresence,
+  type PresenceMessage,
 } from '@faceless-spectre/shared';
 import { useRoomStore, CardView, PlayerView } from '../store/roomStore';
 
@@ -41,6 +44,7 @@ export function useColyseus(roomId: string, displayName?: string) {
   const roomRef = useRef<Room | null>(null);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const lastPresenceAt = useRef(0);
 
   const {
     setRoomId,
@@ -96,6 +100,15 @@ export function useColyseus(roomId: string, displayName?: string) {
         // Receive animation commands and store them for scene components to consume
         room.onMessage(ServerMessageType.AnimationCommand, (msg: AnimationCommand) => {
           useRoomStore.getState().handleAnimationCommand(msg);
+        });
+
+        // Receive presence updates — update ghost hand positions in store
+        room.onMessage(ServerMessageType.Presence, (msg: PresenceMessage) => {
+          const store = useRoomStore.getState();
+          msg.presences.forEach((p) => {
+            if ((p as { hand: unknown }).hand === null) store.removePresence(p.playerId);
+            else store.upsertPresence(p);
+          });
         });
 
         room.onLeave(() => {
@@ -179,5 +192,15 @@ export function useColyseus(roomId: string, displayName?: string) {
     [sendIntent, setSelectedCard],
   );
 
-  return { connected, error, draw, shuffle, deal, grab, release, sendIntent };
+  const sendPresence = useCallback(
+    (hand: HandPresence, maskId: string) => {
+      const now = Date.now();
+      if (now - lastPresenceAt.current < PRESENCE_THROTTLE_MS) return;
+      lastPresenceAt.current = now;
+      sendIntent(IntentType.Presence, { hand, maskId });
+    },
+    [sendIntent],
+  );
+
+  return { connected, error, draw, shuffle, deal, grab, release, sendPresence, sendIntent };
 }
