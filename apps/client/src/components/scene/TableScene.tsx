@@ -9,6 +9,7 @@ import { DeckStack } from './DeckStack';
 import { PlayerHand } from './PlayerHand';
 import { PlacedCards } from './PlacedCards';
 import { GhostHands } from './GhostHands';
+import { OpponentHands } from './OpponentHands';
 import { LocalPresenceSender } from './LocalPresenceSender';
 import { useColyseus } from '../../hooks/useColyseus';
 import { useVoice } from '../../hooks/useVoice';
@@ -75,6 +76,7 @@ export function TableScene({ roomId, displayName }: TableSceneProps) {
           <PlacedCards grab={grab} selectedCardId={selectedCardId} />
           <PlayerHand grab={grab} release={release} selectedCardId={selectedCardId} />
           <GhostHands />
+          <OpponentHands />
           <LocalPresenceSender
             sendPresence={sendPresence}
             maskId={maskId}
