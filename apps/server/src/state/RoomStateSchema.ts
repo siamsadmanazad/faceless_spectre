@@ -5,6 +5,7 @@ import { CardSchema } from './CardSchema';
 export class RoomStateSchema extends Schema {
   @type('string') phase: string = 'lobby';
   @type('number') deckSize: number = 0;
+  @type('number') maxPlayers: number = 6;
   @type({ map: PlayerSchema }) players = new MapSchema<PlayerSchema>();
   @type({ map: CardSchema }) cards = new MapSchema<CardSchema>();
 }

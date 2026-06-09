@@ -59,6 +59,7 @@ export class TableRoom extends Room<RoomStateSchema> {
       this.maxClients = clamped;
     }
     this.setState(new RoomStateSchema());
+    this.state.maxPlayers = this.maxClients;
     this.initDeck();
     this.registerIntentHandlers();
     logger.info(`[TableRoom] room ${this.roomId} created (max ${this.maxClients} players)`);

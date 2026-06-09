@@ -50,6 +50,7 @@ export function useColyseus(roomId: string, displayName?: string) {
     setRoomId,
     setLocalPlayerId,
     setDeckSize,
+    setMaxPlayers,
     setPhase,
     upsertCard,
     upsertPlayer,
@@ -151,6 +152,7 @@ export function useColyseus(roomId: string, displayName?: string) {
 
     function syncFullState(state: Record<string, unknown>) {
       if (typeof state.deckSize === 'number') setDeckSize(state.deckSize);
+      if (typeof state.maxPlayers === 'number') setMaxPlayers(state.maxPlayers);
       if (typeof state.phase === 'string') setPhase(state.phase);
 
       const cards = state.cards as Map<string, Record<string, unknown>> | undefined;

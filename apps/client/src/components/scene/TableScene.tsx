@@ -90,7 +90,7 @@ export function TableScene({ roomId, displayName }: TableSceneProps) {
               position={[0, 0.005, 0]}
               onClick={() => release(selectedCardId)}
             >
-              <planeGeometry args={[8, 5]} />
+              <planeGeometry args={[12, 12]} />
               <meshBasicMaterial transparent opacity={0} depthWrite={false} />
             </mesh>
           )}

@@ -48,6 +48,7 @@ interface RoomState {
   localPlayerId: string | null;
   phase: string;
   deckSize: number;
+  maxPlayers: number;
   cards: Map<string, CardView>;
   players: Map<string, PlayerView>;
   selectedCardId: string | null;
@@ -57,6 +58,7 @@ interface RoomState {
   setRoomId: (id: string) => void;
   setLocalPlayerId: (id: string) => void;
   setDeckSize: (n: number) => void;
+  setMaxPlayers: (n: number) => void;
   setPhase: (p: string) => void;
   upsertCard: (card: CardView) => void;
   removeCard: (id: string) => void;
@@ -81,6 +83,7 @@ export const useRoomStore = create<RoomState>((set) => ({
   localPlayerId: null,
   phase: 'lobby',
   deckSize: 0,
+  maxPlayers: 6,
   cards: new Map(),
   players: new Map(),
   selectedCardId: null,
@@ -93,6 +96,7 @@ export const useRoomStore = create<RoomState>((set) => ({
   setRoomId: (id) => set({ roomId: id }),
   setLocalPlayerId: (id) => set({ localPlayerId: id }),
   setDeckSize: (n) => set({ deckSize: n }),
+  setMaxPlayers: (n) => set({ maxPlayers: n }),
   setPhase: (p) => set({ phase: p }),
   setSelectedCard: (id) => set({ selectedCardId: id }),
   clearDeckAnimation: () => set({ deckAnimation: null }),
@@ -179,6 +183,7 @@ export const useRoomStore = create<RoomState>((set) => ({
       localPlayerId: null,
       phase: 'lobby',
       deckSize: 0,
+      maxPlayers: 6,
       cards: new Map(),
       players: new Map(),
       selectedCardId: null,
