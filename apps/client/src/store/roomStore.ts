@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { AnimationType, Visibility, type AnimationCommand } from '@faceless-spectre/shared';
+import { AnimationType, Visibility, type AnimationCommand, type PresencePayload } from '@faceless-spectre/shared';
 
 export interface CardView {
   id: string;
@@ -37,6 +37,7 @@ interface RoomState {
   players: Map<string, PlayerView>;
   selectedCardId: string | null;
   activeAnimations: Map<string, ActiveAnimation>;
+  presences: Map<string, PresencePayload>;
 
   setRoomId: (id: string) => void;
   setLocalPlayerId: (id: string) => void;
@@ -49,6 +50,8 @@ interface RoomState {
   setSelectedCard: (id: string | null) => void;
   handleAnimationCommand: (cmd: AnimationCommand) => void;
   clearAnimation: (cardId: string) => void;
+  upsertPresence: (payload: PresencePayload) => void;
+  removePresence: (playerId: string) => void;
   clearRoom: () => void;
 }
 
@@ -61,6 +64,7 @@ export const useRoomStore = create<RoomState>((set) => ({
   players: new Map(),
   selectedCardId: null,
   activeAnimations: new Map(),
+  presences: new Map(),
 
   setRoomId: (id) => set({ roomId: id }),
   setLocalPlayerId: (id) => set({ localPlayerId: id }),
@@ -83,6 +87,24 @@ export const useRoomStore = create<RoomState>((set) => ({
       const next = new Map(s.activeAnimations);
       next.delete(cardId);
       return { activeAnimations: next };
+    }),
+
+  upsertPresence: (payload) =>
+    set((s) => {
+      const next = new Map(s.presences);
+      if ((payload as { hand: unknown }).hand === null) {
+        next.delete(payload.playerId);
+      } else {
+        next.set(payload.playerId, payload);
+      }
+      return { presences: next };
+    }),
+
+  removePresence: (playerId) =>
+    set((s) => {
+      const next = new Map(s.presences);
+      next.delete(playerId);
+      return { presences: next };
     }),
 
   upsertCard: (card) =>
@@ -123,6 +145,7 @@ export const useRoomStore = create<RoomState>((set) => ({
       players: new Map(),
       selectedCardId: null,
       activeAnimations: new Map(),
+      presences: new Map(),
     }),
 }));
 
