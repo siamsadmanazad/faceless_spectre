@@ -121,6 +121,18 @@ The replay verifier (`verifyReplay`) re-applies every logged operation in sequen
 
 ---
 
+## Reconnection & persistence
+
+If a player's tab refreshes or their network drops briefly, the table holds their seat — and all their cards — for 30 seconds. If they reconnect within that window, they pick up exactly where they left off: same hand, same seat, no re-deal required. If 30 seconds elapse without a reconnect, the seat is cleared and their cards are returned to the table.
+
+On reconnect, the browser restores the session automatically: the client stores the room ID and session token in `localStorage` at join time and attempts `client.reconnect()` on load before falling back to a fresh join.
+
+Audit trails also survive server restarts. When a room closes, its full deck history and rejected-intent log are written to the `room_audits` Postgres table. The `GET /rooms/:roomId/audit` endpoint checks the in-memory store first (live rooms) and falls back to Postgres for closed rooms.
+
+For horizontal scale, Colyseus is configured with `RedisPresence` and `RedisDriver` — both backed by the same Redis instance. This allows multiple server processes to share the room registry, so the load balancer can route players to any process and matchmaking still works correctly.
+
+---
+
 ## Shuffle styles
 
 Pressing `R` (or the Shuffle button) opens a small panel before anything happens. You pick a style — Overhand, Riffle, Wash, Split, or Casino — and an intensity level. Click Shuffle (or press Enter) and the deck animates accordingly: riffle tilts, overhand stutters, wash sweeps sideways, split pivots on its Y axis, casino spins full rotations. Deal briefly compresses the deck as cards leave.
@@ -163,7 +175,7 @@ Once a card has been revealed, it stays revealed. The server enforces the blinds
 | 5 | Voice — WebRTC over Colyseus signaling relay | ✅ Done |
 | 6 | Shuffle & deal UX — style selector, animation | ✅ Done |
 | 7 | Replay + anti-cheat audit | ✅ Done |
-| 8 | Persistence + horizontal scale (Redis-backed) | ⬜ |
+| 8 | Persistence + horizontal scale (Redis-backed) | ✅ Done |
 | 9 | Deploy — Cloudflare (client) + stateful host (server) | ⬜ |
 | 10 | Poker ruleset *(only after the sandbox is fun)* | ⬜ |
 
