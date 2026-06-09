@@ -1,5 +1,12 @@
 import { create } from 'zustand';
-import { AnimationType, Visibility, type AnimationCommand, type PresencePayload } from '@faceless-spectre/shared';
+import {
+  AnimationType,
+  ShuffleStyle,
+  ShuffleIntensity,
+  Visibility,
+  type AnimationCommand,
+  type PresencePayload,
+} from '@faceless-spectre/shared';
 
 export interface CardView {
   id: string;
@@ -28,6 +35,14 @@ export interface ActiveAnimation {
   durationMs: number;
 }
 
+export interface DeckAnimation {
+  animation: AnimationType;
+  style: ShuffleStyle;
+  intensity: ShuffleIntensity;
+  startedAt: number;
+  durationMs: number;
+}
+
 interface RoomState {
   roomId: string | null;
   localPlayerId: string | null;
@@ -50,6 +65,8 @@ interface RoomState {
   setSelectedCard: (id: string | null) => void;
   handleAnimationCommand: (cmd: AnimationCommand) => void;
   clearAnimation: (cardId: string) => void;
+  deckAnimation: DeckAnimation | null;
+  clearDeckAnimation: () => void;
   upsertPresence: (payload: PresencePayload) => void;
   removePresence: (playerId: string) => void;
   isMuted: boolean;
@@ -68,6 +85,7 @@ export const useRoomStore = create<RoomState>((set) => ({
   players: new Map(),
   selectedCardId: null,
   activeAnimations: new Map(),
+  deckAnimation: null,
   presences: new Map(),
   isMuted: false,
   audioEnabled: false,
@@ -77,15 +95,27 @@ export const useRoomStore = create<RoomState>((set) => ({
   setDeckSize: (n) => set({ deckSize: n }),
   setPhase: (p) => set({ phase: p }),
   setSelectedCard: (id) => set({ selectedCardId: id }),
+  clearDeckAnimation: () => set({ deckAnimation: null }),
   setMuted: (v) => set({ isMuted: v }),
   setAudioEnabled: (v) => set({ audioEnabled: v }),
 
   handleAnimationCommand: (cmd) =>
     set((s) => {
-      const next = new Map(s.activeAnimations);
       const now = Date.now();
+      const next = new Map(s.activeAnimations);
       for (const cardId of cmd.cardIds) {
         next.set(cardId, { type: cmd.animation, startedAt: now, durationMs: cmd.durationMs });
+      }
+      // Shuffle and Deal animate the deck group rather than individual cards
+      if (cmd.animation === AnimationType.Shuffle || cmd.animation === AnimationType.Deal) {
+        const da: DeckAnimation = {
+          animation: cmd.animation,
+          style: cmd.style ?? ShuffleStyle.Riffle,
+          intensity: cmd.intensity ?? ShuffleIntensity.Medium,
+          startedAt: now,
+          durationMs: cmd.durationMs,
+        };
+        return { activeAnimations: next, deckAnimation: da };
       }
       return { activeAnimations: next };
     }),
@@ -153,6 +183,7 @@ export const useRoomStore = create<RoomState>((set) => ({
       players: new Map(),
       selectedCardId: null,
       activeAnimations: new Map(),
+      deckAnimation: null,
       presences: new Map(),
       isMuted: false,
       audioEnabled: false,

@@ -163,11 +163,8 @@ export function useColyseus(roomId: string, displayName?: string) {
   const draw = useCallback(() => sendIntent(IntentType.Draw), [sendIntent]);
 
   const shuffle = useCallback(
-    () =>
-      sendIntent(IntentType.Shuffle, {
-        style: ShuffleStyle.Riffle,
-        intensity: ShuffleIntensity.Medium,
-      }),
+    (style: ShuffleStyle = ShuffleStyle.Riffle, intensity: ShuffleIntensity = ShuffleIntensity.Medium) =>
+      sendIntent(IntentType.Shuffle, { style, intensity }),
     [sendIntent],
   );
 

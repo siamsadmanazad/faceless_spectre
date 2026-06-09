@@ -5,14 +5,14 @@ import { useRoomStore } from '../../store/roomStore';
 interface HUDProps {
   connected: boolean;
   draw: () => void;
-  shuffle: () => void;
+  onShuffleClick: () => void;
   deal: () => void;
   isMuted: boolean;
   toggleMute: () => void;
   audioEnabled: boolean;
 }
 
-export function HUD({ connected, draw, shuffle, deal, isMuted, toggleMute, audioEnabled }: HUDProps) {
+export function HUD({ connected, draw, onShuffleClick, deal, isMuted, toggleMute, audioEnabled }: HUDProps) {
   const deckSize = useRoomStore((s) => s.deckSize);
   const players = useRoomStore((s) => s.players);
   const localPlayerId = useRoomStore((s) => s.localPlayerId);
@@ -39,7 +39,7 @@ export function HUD({ connected, draw, shuffle, deal, isMuted, toggleMute, audio
         <button style={styles.btn} onClick={draw} title="[D]">
           Draw <kbd>D</kbd>
         </button>
-        <button style={styles.btn} onClick={shuffle} title="[R]">
+        <button style={styles.btn} onClick={onShuffleClick} title="[R]">
           Shuffle <kbd>R</kbd>
         </button>
         <button style={styles.btn} onClick={deal} title="[Enter]">

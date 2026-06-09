@@ -1,8 +1,9 @@
 'use client';
 
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment, Stats } from '@react-three/drei';
+import { ShuffleStyle, ShuffleIntensity } from '@faceless-spectre/shared';
 import { Table } from './Table';
 import { DeckStack } from './DeckStack';
 import { PlayerHand } from './PlayerHand';
@@ -13,6 +14,7 @@ import { useColyseus } from '../../hooks/useColyseus';
 import { useVoice } from '../../hooks/useVoice';
 import { useRoomStore } from '../../store/roomStore';
 import { HUD } from '../hud/HUD';
+import { ShuffleSelector } from '../hud/ShuffleSelector';
 
 interface TableSceneProps {
   roomId: string;
@@ -22,6 +24,7 @@ interface TableSceneProps {
 export function TableScene({ roomId, displayName }: TableSceneProps) {
   const { connected, error, draw, shuffle, deal, grab, release, sendPresence, sendIntent, roomRef } = useColyseus(roomId, displayName);
   const { isMuted, toggleMute, audioEnabled } = useVoice({ roomRef, sendIntent });
+  const [shufflePanelOpen, setShufflePanelOpen] = useState(false);
   const selectedCardId = useRoomStore((s) => s.selectedCardId);
   const localPlayerId = useRoomStore((s) => s.localPlayerId);
   const players = useRoomStore((s) => s.players);
@@ -32,7 +35,7 @@ export function TableScene({ roomId, displayName }: TableSceneProps) {
       if (e.target instanceof HTMLInputElement) return;
       switch (e.key.toLowerCase()) {
         case 'd': draw(); break;
-        case 'r': shuffle(); break;
+        case 'r': setShufflePanelOpen(true); break;
         case 'enter': deal(5); break;
         case 'escape':
           if (selectedCardId) release(selectedCardId);
@@ -42,7 +45,7 @@ export function TableScene({ roomId, displayName }: TableSceneProps) {
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [draw, shuffle, deal, release, selectedCardId, toggleMute]);
+  }, [draw, deal, release, selectedCardId, toggleMute]);
 
   if (error) {
     return (
@@ -101,7 +104,13 @@ export function TableScene({ roomId, displayName }: TableSceneProps) {
         {process.env.NODE_ENV === 'development' && <Stats />}
       </Canvas>
 
-      <HUD connected={connected} draw={draw} shuffle={shuffle} deal={() => deal(5)} isMuted={isMuted} toggleMute={toggleMute} audioEnabled={audioEnabled} />
+      <HUD connected={connected} draw={draw} onShuffleClick={() => setShufflePanelOpen(true)} deal={() => deal(5)} isMuted={isMuted} toggleMute={toggleMute} audioEnabled={audioEnabled} />
+
+      <ShuffleSelector
+        open={shufflePanelOpen}
+        onClose={() => setShufflePanelOpen(false)}
+        onConfirm={(s: ShuffleStyle, i: ShuffleIntensity) => { shuffle(s, i); setShufflePanelOpen(false); }}
+      />
 
       {!connected && !error && (
         <div style={styles.connecting}>Connecting to table…</div>
