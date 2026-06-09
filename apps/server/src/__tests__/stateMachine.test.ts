@@ -11,6 +11,7 @@ describe('card state machine — legal transitions', () => {
     [CardState.Hand, CardState.Placed],
     [CardState.Selected, CardState.Moving],
     [CardState.Selected, CardState.Hand],
+    [CardState.Selected, CardState.Placed],
     [CardState.Moving, CardState.Placed],
     [CardState.Moving, CardState.Hand],
     [CardState.Placed, CardState.Selected],

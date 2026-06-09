@@ -21,7 +21,7 @@ export const CARD_STATE_MACHINE: Readonly<Record<string, ReadonlyArray<string>>>
   DECK: ['DRAWN'],
   DRAWN: ['HAND', 'PLACED'],
   HAND: ['SELECTED', 'PLACED'],
-  SELECTED: ['MOVING', 'HAND'],
+  SELECTED: ['MOVING', 'HAND', 'PLACED'],
   MOVING: ['PLACED', 'HAND'],
   PLACED: ['SELECTED', 'REVEALED'],
   REVEALED: ['SELECTED'],
