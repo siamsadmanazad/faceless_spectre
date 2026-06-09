@@ -49,15 +49,18 @@ No internet required. Fully offline.
 
 ## Controls
 
-| Key | Action |
+| Key / Input | Action |
 |---|---|
 | `D` | Draw a card from the deck into your hand |
 | `R` | Shuffle the deck (cryptographically random) |
 | `Enter` | Deal 5 cards to every player at the table |
+| Click a hand card | Grab it (lifts and glows blue) |
+| Click the table / `Escape` | Release the grabbed card |
+| Click a placed card | Pick it up from the table |
 | Mouse drag | Orbit the camera around the table |
 | Scroll | Zoom in / out |
 
-Your cards show their faces. Everyone else's hand shows only backs.
+Your cards show their faces. Everyone else's hand shows only backs. Other players appear as glowing ghost hands — their movements tracked in real time at 20 Hz.
 
 ---
 
@@ -94,6 +97,16 @@ Every shuffle is logged: entropy seed, actor, and a fingerprint of the order bef
 
 ---
 
+## Ghost hands
+
+Other players appear as translucent floating hands — a palm, four fingers, a thumb — each lit in a seat-specific colour. A torus mask floats above each hand. When a player grabs a card, their hand brightens. When they let go, it settles back to a dim idle glow.
+
+Hand positions are broadcast at 20 Hz (50 ms intervals) and smoothly interpolated on the receiving end, keeping motion fluid within the bandwidth budget of <40 KB/s per player. The server relays presence directly without writing it to game state — it is ephemeral data, not history.
+
+When a player disconnects, their ghost hand vanishes immediately.
+
+---
+
 ## The memory game
 
 Every card carries a permanent identity. It doesn't change as it moves between the deck, your hand, and the table. When you draw the Ace of Hearts, that card remains the Ace of Hearts whether it's sitting face-down in front of you or eventually turned up for everyone to see.
@@ -111,9 +124,9 @@ Once a card has been revealed, it stays revealed. The server enforces the blinds
 | 0 | Monorepo foundations (pnpm, Turborepo, Docker) | ✅ Done |
 | 1 | Authoritative core — rooms, deck, CSPRNG shuffle, visibility filter | ✅ Done |
 | 2 | 3D table — React Three Fiber, lobby, live deck rendering | ✅ Done |
-| 3 | Free-hand interaction — grab, place, fan, rotate | ⬜ Next |
-| 4 | Presence — ghost hands + masks in real time | ⬜ |
-| 5 | Voice — WebRTC over Colyseus signaling relay | ⬜ |
+| 3 | Free-hand interaction — grab, place, rate limiting | ✅ Done |
+| 4 | Presence — ghost hands + masks in real time (20 Hz, <40 KB/s) | ✅ Done |
+| 5 | Voice — WebRTC over Colyseus signaling relay | ⬜ Next |
 | 6 | Shuffle & deal UX — style selector, animation | ⬜ |
 | 7 | Replay + anti-cheat audit | ⬜ |
 | 8 | Persistence + horizontal scale (Redis-backed) | ⬜ |

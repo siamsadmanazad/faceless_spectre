@@ -98,11 +98,11 @@ faceless-spectre/
 
 | Phase | Theme | Gate |
 |---|---|---|
-| **0** | Foundations — clean monorepo + infra | `pnpm build && pnpm lint` pass; `db:up` connects |
-| **1** | Authoritative core — rooms, deck, CSPRNG shuffle, visibility filter (headless) | Visibility security tests pass |
-| **2** | 3D table — render from filtered server state | 60 FPS idle; two tabs, same room |
-| **3** | Free-hand interaction — intents, validation, animation | Server confirms before animation plays |
-| **4** | Presence — ghost hands + masks | Smooth interpolation within bandwidth budget |
+| **0** | Foundations — clean monorepo + infra | ✅ `pnpm build && pnpm lint` pass; `db:up` connects |
+| **1** | Authoritative core — rooms, deck, CSPRNG shuffle, visibility filter (headless) | ✅ Visibility security tests pass |
+| **2** | 3D table — render from filtered server state | ✅ 60 FPS idle; two tabs, same room |
+| **3** | Free-hand interaction — intents, validation, animation | ✅ Server confirms before animation plays |
+| **4** | Presence — ghost hands + masks | ✅ Smooth interpolation within bandwidth budget |
 | **5** | Voice — WebRTC over Colyseus signaling | Peer-to-peer audio; no game-state audio path |
 | **6** | Shuffle & deal UX | Fairness test still passes with style selectors |
 | **7** | Replay + anti-cheat audit | Audit suite in CI; log replays deterministically |
