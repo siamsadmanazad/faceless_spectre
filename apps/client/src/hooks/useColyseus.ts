@@ -41,7 +41,7 @@ function schemaToPlayerView(player: Record<string, unknown>): PlayerView {
   };
 }
 
-export function useColyseus(roomId: string, displayName?: string) {
+export function useColyseus(roomId: string, displayName?: string, spectate = false) {
   const roomRef = useRef<Room | null>(null);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,8 +68,10 @@ export function useColyseus(roomId: string, displayName?: string) {
         // 1. Consume a seat reservation left by the lobby (freshly created room).
         //    This avoids a second HTTP round-trip and the race where Colyseus
         //    auto-disposes an empty room before we call joinById.
+        // Spectators always take the fresh-join path with spectate:true — never a
+        // player reservation or a saved reconnect token (which would seat them).
         const reservationKey = `fs_reservation_${roomId}`;
-        const pendingJson = sessionStorage.getItem(reservationKey);
+        const pendingJson = spectate ? null : sessionStorage.getItem(reservationKey);
         if (pendingJson) {
           sessionStorage.removeItem(reservationKey);
           try {
@@ -83,7 +85,7 @@ export function useColyseus(roomId: string, displayName?: string) {
         // 2. Reconnect using a saved token, but only for the exact same room.
         //    Ignoring a token for a different room prevents connecting to a
         //    stale session and leaving the intended room orphaned.
-        if (!joined) {
+        if (!joined && !spectate) {
           const saved = localStorage.getItem('fs_session');
           if (saved) {
             try {
@@ -108,7 +110,7 @@ export function useColyseus(roomId: string, displayName?: string) {
           const res = await fetch(`${SERVER_URL}/rooms/join`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ roomId, displayName: displayName ?? 'Player', clientId: getClientId() }),
+            body: JSON.stringify({ roomId, displayName: displayName ?? 'Player', clientId: getClientId(), spectate }),
           });
 
           if (!res.ok) {
@@ -128,8 +130,11 @@ export function useColyseus(roomId: string, displayName?: string) {
         }
 
         // Persist reconnection token with its roomId so future reconnect attempts
-        // can verify they're targeting the right room.
-        localStorage.setItem('fs_session', JSON.stringify({ roomId: room.id, reconnectionToken: room.reconnectionToken }));
+        // can verify they're targeting the right room. Spectators don't persist —
+        // a token would re-seat them as a player on the next visit.
+        if (!spectate) {
+          localStorage.setItem('fs_session', JSON.stringify({ roomId: room.id, reconnectionToken: room.reconnectionToken }));
+        }
 
         roomRef.current = room;
         setRoomId(room.id);
@@ -187,6 +192,7 @@ export function useColyseus(roomId: string, displayName?: string) {
       if (typeof state.mode === 'string') next.mode = state.mode;
       if (typeof state.allowRandomFill === 'boolean') next.allowRandomFill = state.allowRandomFill;
       if (typeof state.locked === 'boolean') next.locked = state.locked;
+      if (typeof state.spectatorCount === 'number') next.spectatorCount = state.spectatorCount;
 
       const cards = state.cards as Map<string, Record<string, unknown>> | undefined;
       if (cards && typeof cards.forEach === 'function') {

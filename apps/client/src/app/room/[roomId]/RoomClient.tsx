@@ -12,5 +12,6 @@ export function RoomClient() {
   const roomId = pathname.split('/').filter(Boolean).pop() ?? '';
   const searchParams = useSearchParams();
   const displayName = searchParams.get('name') ?? 'Player';
-  return <TableScene roomId={roomId} displayName={displayName} />;
+  const spectate = searchParams.get('spectate') === '1';
+  return <TableScene roomId={roomId} displayName={displayName} spectate={spectate} />;
 }

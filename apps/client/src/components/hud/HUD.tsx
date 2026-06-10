@@ -15,6 +15,7 @@ interface HUDProps {
   setBackfill: (enabled: boolean) => void;
   lockTable: () => void;
   kick: (targetId: string) => void;
+  spectate: boolean;
 }
 
 export function HUD({
@@ -28,6 +29,7 @@ export function HUD({
   setBackfill,
   lockTable,
   kick,
+  spectate,
 }: HUDProps) {
   const deckSize = useRoomStore((s) => s.deckSize);
   const players = useRoomStore((s) => s.players);
@@ -40,6 +42,7 @@ export function HUD({
   const locked = useRoomStore((s) => s.locked);
   const mutedPeers = useRoomStore((s) => s.mutedPeers);
   const togglePeerMute = useRoomStore((s) => s.togglePeerMute);
+  const spectatorCount = useRoomStore((s) => s.spectatorCount);
 
   const isHost = !!localPlayerId && localPlayerId === hostId;
   const isPrivate = mode === RoomMode.Private;
@@ -69,8 +72,9 @@ export function HUD({
           {connected ? '● Connected' : '◌ Connecting…'}
         </span>
         <span style={styles.stat}>Deck: {deckSize}</span>
-        <span style={styles.stat}>Hand: {handCount}</span>
+        {!spectate && <span style={styles.stat}>Hand: {handCount}</span>}
         <span style={styles.stat}>Players: {players.size}</span>
+        {spectatorCount > 0 && <span style={styles.stat}>👁 {spectatorCount}</span>}
       </div>
 
       {/* Room / invite panel */}
@@ -103,25 +107,31 @@ export function HUD({
         )}
       </div>
 
-      {/* Action buttons */}
-      <div style={styles.controls}>
-        <button style={styles.btn} onClick={draw} title="[D]">
-          Draw <kbd>D</kbd>
-        </button>
-        <button style={styles.btn} onClick={onShuffleClick} title="[R]">
-          Shuffle <kbd>R</kbd>
-        </button>
-        <button style={styles.btn} onClick={deal} title="[Enter]">
-          Deal 5 <kbd>↵</kbd>
-        </button>
-        {audioEnabled ? (
-          <button style={styles.btn} onClick={toggleMute} title="[M]">
-            {isMuted ? 'Unmute' : 'Mute'} <kbd>M</kbd>
+      {/* Action buttons (players only) */}
+      {spectate ? (
+        <div style={styles.controls}>
+          <span style={styles.spectatingBadge}>👁 Spectating — you can watch but not act</span>
+        </div>
+      ) : (
+        <div style={styles.controls}>
+          <button style={styles.btn} onClick={draw} title="[D]">
+            Draw <kbd>D</kbd>
           </button>
-        ) : (
-          <span style={styles.noMic}>Mic unavailable</span>
-        )}
-      </div>
+          <button style={styles.btn} onClick={onShuffleClick} title="[R]">
+            Shuffle <kbd>R</kbd>
+          </button>
+          <button style={styles.btn} onClick={deal} title="[Enter]">
+            Deal 5 <kbd>↵</kbd>
+          </button>
+          {audioEnabled ? (
+            <button style={styles.btn} onClick={toggleMute} title="[M]">
+              {isMuted ? 'Unmute' : 'Mute'} <kbd>M</kbd>
+            </button>
+          ) : (
+            <span style={styles.noMic}>Mic unavailable</span>
+          )}
+        </div>
+      )}
 
       {/* Player list */}
       <div style={styles.playerList}>
@@ -215,6 +225,16 @@ const styles: Record<string, React.CSSProperties> = {
     letterSpacing: 1,
     color: 'rgba(255,255,255,0.4)',
   },
+  spectatingBadge: {
+    padding: '10px 20px',
+    fontSize: 14,
+    fontFamily: 'sans-serif',
+    background: 'rgba(0,0,0,0.5)',
+    color: 'rgba(255,255,255,0.75)',
+    border: '1px solid rgba(255,255,255,0.18)',
+    borderRadius: 8,
+    backdropFilter: 'blur(4px)',
+  } as React.CSSProperties,
   controls: {
     position: 'absolute',
     bottom: 24,

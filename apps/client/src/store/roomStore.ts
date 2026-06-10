@@ -53,6 +53,7 @@ interface RoomState {
   mode: string;
   allowRandomFill: boolean;
   locked: boolean;
+  spectatorCount: number;
   cards: Map<string, CardView>;
   players: Map<string, PlayerView>;
   selectedCardId: string | null;
@@ -77,6 +78,7 @@ interface RoomState {
     mode?: string;
     allowRandomFill?: boolean;
     locked?: boolean;
+    spectatorCount?: number;
     cards?: Map<string, CardView>;
     players?: Map<string, PlayerView>;
   }) => void;
@@ -111,6 +113,7 @@ export const useRoomStore = create<RoomState>((set) => ({
   mode: 'public',
   allowRandomFill: false,
   locked: false,
+  spectatorCount: 0,
   cards: new Map(),
   players: new Map(),
   selectedCardId: null,
@@ -136,6 +139,7 @@ export const useRoomStore = create<RoomState>((set) => ({
       mode: next.mode ?? s.mode,
       allowRandomFill: next.allowRandomFill ?? s.allowRandomFill,
       locked: next.locked ?? s.locked,
+      spectatorCount: next.spectatorCount ?? s.spectatorCount,
       cards: next.cards ?? s.cards,
       players: next.players ?? s.players,
     })),
@@ -237,6 +241,7 @@ export const useRoomStore = create<RoomState>((set) => ({
       mode: 'public',
       allowRandomFill: false,
       locked: false,
+      spectatorCount: 0,
       cards: new Map(),
       players: new Map(),
       selectedCardId: null,

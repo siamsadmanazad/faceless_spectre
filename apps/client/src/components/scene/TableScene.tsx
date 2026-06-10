@@ -22,14 +22,15 @@ import { ShuffleSelector } from '../hud/ShuffleSelector';
 interface TableSceneProps {
   roomId: string;
   displayName?: string;
+  spectate?: boolean;
 }
 
-export function TableScene({ roomId, displayName }: TableSceneProps) {
+export function TableScene({ roomId, displayName, spectate = false }: TableSceneProps) {
   // Whether the game tab is the active foreground tab. While inactive the whole
   // game pauses — render loop, presence, and voice — so it consumes nothing.
   const visible = usePageVisible();
 
-  const { connected, error, draw, shuffle, deal, grab, release, sendPresence, setBackfill, lockTable, kick, sendIntent, roomRef } = useColyseus(roomId, displayName);
+  const { connected, error, draw, shuffle, deal, grab, release, sendPresence, setBackfill, lockTable, kick, sendIntent, roomRef } = useColyseus(roomId, displayName, spectate);
   const { isMuted, toggleMute, audioEnabled } = useVoice({ roomRef, sendIntent, active: visible });
   const [shufflePanelOpen, setShufflePanelOpen] = useState(false);
   const selectedCardId = useRoomStore((s) => s.selectedCardId);
@@ -57,6 +58,7 @@ export function TableScene({ roomId, displayName }: TableSceneProps) {
   }, [visible]);
 
   useEffect(() => {
+    if (spectate) return; // spectators have no actions
     function onKey(e: KeyboardEvent) {
       if (e.target instanceof HTMLInputElement) return;
       switch (e.key.toLowerCase()) {
@@ -71,7 +73,7 @@ export function TableScene({ roomId, displayName }: TableSceneProps) {
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [draw, deal, release, selectedCardId, toggleMute]);
+  }, [spectate, draw, deal, release, selectedCardId, toggleMute]);
 
   if (error) {
     return (
@@ -105,11 +107,14 @@ export function TableScene({ roomId, displayName }: TableSceneProps) {
           <PlayerHand grab={grab} release={release} selectedCardId={selectedCardId} />
           <GhostHands />
           <OpponentHands />
-          <LocalPresenceSender
-            sendPresence={sendPresence}
-            maskId={maskId}
-            selectedCardId={selectedCardId}
-          />
+          {/* Spectators have no seat, hand, or ghost hand — they only observe. */}
+          {!spectate && (
+            <LocalPresenceSender
+              sendPresence={sendPresence}
+              maskId={maskId}
+              selectedCardId={selectedCardId}
+            />
+          )}
 
           {/* Invisible table plane — clicking it releases the selected card */}
           {selectedCardId && (
@@ -134,7 +139,7 @@ export function TableScene({ roomId, displayName }: TableSceneProps) {
         {process.env.NODE_ENV === 'development' && <Stats />}
       </Canvas>
 
-      <HUD connected={connected} draw={draw} onShuffleClick={() => setShufflePanelOpen(true)} deal={() => deal(5)} isMuted={isMuted} toggleMute={toggleMute} audioEnabled={audioEnabled} setBackfill={setBackfill} lockTable={lockTable} kick={kick} />
+      <HUD connected={connected} draw={draw} onShuffleClick={() => setShufflePanelOpen(true)} deal={() => deal(5)} isMuted={isMuted} toggleMute={toggleMute} audioEnabled={audioEnabled} setBackfill={setBackfill} lockTable={lockTable} kick={kick} spectate={spectate} />
 
       <ShuffleSelector
         open={shufflePanelOpen}

@@ -102,11 +102,12 @@ export default function LobbyPage() {
     }
   }
 
-  function joinByCode() {
+  function joinByCode(spectate = false) {
     const code = joinCode.trim();
     if (!code) return;
     rememberName();
-    router.push(`/room/${code}?name=${encodeURIComponent(name)}`);
+    const watch = spectate ? '&spectate=1' : '';
+    router.push(`/room/${code}?name=${encodeURIComponent(name)}${watch}`);
   }
 
   function joinRoom(roomId: string) {
@@ -173,8 +174,11 @@ export default function LobbyPage() {
               onKeyDown={(e) => { if (e.key === 'Enter') joinByCode(); }}
               placeholder="Enter room code"
             />
-            <button style={styles.joinBtn} onClick={joinByCode} disabled={!joinCode.trim()}>
+            <button style={styles.joinBtn} onClick={() => joinByCode(false)} disabled={!joinCode.trim()}>
               Join
+            </button>
+            <button style={styles.joinBtn} onClick={() => joinByCode(true)} disabled={!joinCode.trim()} title="Watch without taking a seat">
+              👁 Watch
             </button>
           </div>
         </div>

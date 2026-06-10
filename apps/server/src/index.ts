@@ -98,12 +98,12 @@ async function main(): Promise<void> {
   );
 
   /** Join an existing room by code/id, or create one as a fallback. */
-  app.post<{ Body: { roomId?: string; displayName?: string; maskId?: string; maxPlayers?: number; clientId?: string } }>(
+  app.post<{ Body: { roomId?: string; displayName?: string; maskId?: string; maxPlayers?: number; clientId?: string; spectate?: boolean } }>(
     '/rooms/join',
     async (req, reply) => {
       try {
-        const { roomId, displayName, maskId, maxPlayers, clientId } = req.body ?? {};
-        const joinOptions = { displayName, maskId, clientId };
+        const { roomId, displayName, maskId, maxPlayers, clientId, spectate } = req.body ?? {};
+        const joinOptions = { displayName, maskId, clientId, spectate };
 
         const reservation = roomId
           ? await matchMaker.joinById(roomId, joinOptions)
