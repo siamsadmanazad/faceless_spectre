@@ -169,13 +169,6 @@ export class TableRoom extends Room<RoomStateSchema> {
     this.syncAudit();
   }
 
-  private remapSession(oldId: string, newId: string): void {
-    if (oldId === newId) return;
-    this.state.cards.forEach((card: CardSchema) => {
-      if (card.ownerId === oldId) card.ownerId = newId;
-    });
-  }
-
   private initDeck(): void {
     this.deckTruth.order = [];
 

@@ -39,7 +39,6 @@ interface RoomInternals {
   onDispose(): Promise<void>;
   handleDraw(client: MockClient, count: number): void;
   removePlayer(sessionId: string): void;
-  remapSession(oldId: string, newId: string): void;
   allowReconnection(client: MockClient, seconds: number): Promise<void>;
   disconnect(): Promise<void>;
 }
@@ -147,30 +146,6 @@ describe('TableRoom — reconnection', () => {
       if (card.ownerId === 'remove-player') owned++;
     });
     expect(owned).toBe(0);
-  });
-
-  it('remapSession updates ownerId on all cards owned by old sessionId', async () => {
-    const client = makeMockClient('old-session');
-    await (room as unknown as RoomInternals).onJoin(client, { displayName: 'Frank' });
-    (room as unknown as RoomInternals).handleDraw(client, 2);
-
-    // Verify cards are owned by old-session
-    let before = 0;
-    room.state.cards.forEach((card: CardSchema) => {
-      if (card.ownerId === 'old-session') before++;
-    });
-    expect(before).toBe(2);
-
-    (room as unknown as RoomInternals).remapSession('old-session', 'new-session');
-
-    let afterOld = 0;
-    let afterNew = 0;
-    room.state.cards.forEach((card: CardSchema) => {
-      if (card.ownerId === 'old-session') afterOld++;
-      if (card.ownerId === 'new-session') afterNew++;
-    });
-    expect(afterOld).toBe(0);
-    expect(afterNew).toBe(2);
   });
 
   it('returned cards are placed on table with Hidden visibility', async () => {
