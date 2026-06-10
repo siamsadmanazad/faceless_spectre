@@ -20,6 +20,9 @@ export const MAX_MULTI_DRAW = 13;
  *  the same stable clientId (e.g. reopening the invite link on flaky wifi). */
 export const RECONNECT_GRACE_SEC = 120;
 
+/** Extra non-seat connection slots for spectators, on top of the player cap. */
+export const SPECTATOR_SLOTS = 4;
+
 export const PRESENCE_THROTTLE_MS = 50;
 export const MAX_INTENTS_PER_SECOND = 20;
 /** Server-side flush cadence for aggregated presence (one broadcast per tick). */

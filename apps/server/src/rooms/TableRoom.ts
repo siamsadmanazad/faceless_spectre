@@ -13,6 +13,7 @@ import {
   PRESENCE_FLUSH_MS,
   RECONNECT_GRACE_SEC,
   RoomMode,
+  SPECTATOR_SLOTS,
   ServerMessageType,
   ShuffleIntensity,
   ShuffleStyle,
@@ -77,20 +78,22 @@ export class TableRoom extends Room<RoomStateSchema> {
   /** Structured record of every rejected intent for the audit trail. */
   private rejectedIntents: Array<{ timestamp: number; sessionId: string; errorCode: ErrorCode; message: string }> = [];
 
-  onCreate(options?: { maxPlayers?: number; mode?: string }): void {
-    if (options?.maxPlayers !== undefined) {
-      const clamped = Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, Math.floor(options.maxPlayers)));
-      this.maxClients = clamped;
-    }
-    this.setState(new RoomStateSchema());
-    this.state.maxPlayers = this.maxClients;
+  /** Connected seatless observers (sessionId). Not stored in synced state. */
+  private spectators = new Set<string>();
 
-    // Private rooms are reachable only by code/link until the host opts into
-    // backfill; public rooms are matchmade by Quick Play and shown in /lobby.
-    const mode = options?.mode === RoomMode.Private ? RoomMode.Private : RoomMode.Public;
-    this.state.mode = mode;
-    this.setPrivate(mode === RoomMode.Private);
-    this.setMetadata({ mode, browsable: mode === RoomMode.Public });
+  onCreate(options?: { maxPlayers?: number; mode?: string }): void {
+    const playerCap =
+      options?.maxPlayers !== undefined
+        ? Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, Math.floor(options.maxPlayers)))
+        : MAX_PLAYERS;
+    // Total connections = player seats + extra spectator slots. The player cap is
+    // enforced separately (nextAvailableSeat), so spectators never take a seat.
+    this.maxClients = playerCap + SPECTATOR_SLOTS;
+    this.setState(new RoomStateSchema());
+    this.state.maxPlayers = playerCap;
+
+    this.state.mode = options?.mode === RoomMode.Private ? RoomMode.Private : RoomMode.Public;
+    this.refreshDiscovery();
 
     this.initDeck();
     this.registerIntentHandlers();
@@ -100,8 +103,18 @@ export class TableRoom extends Room<RoomStateSchema> {
     logger.info(`[TableRoom] room ${this.roomId} created (max ${this.maxClients} players)`);
   }
 
-  onJoin(client: Client, options?: { displayName?: string; maskId?: string; clientId?: string }): void {
+  onJoin(client: Client, options?: { displayName?: string; maskId?: string; clientId?: string; spectate?: boolean }): void {
     const clientId = options?.clientId ?? '';
+
+    // Spectators get no seat — they only observe. The visibility @filter already
+    // hides every hand/deck face from them (they own nothing), and requireSeat
+    // blocks all card/host intents. They can join even a full table.
+    if (options?.spectate) {
+      this.spectators.add(client.sessionId);
+      this.state.spectatorCount = this.spectators.size;
+      logger.info(`[TableRoom] spectator joined room ${this.roomId}`);
+      return;
+    }
 
     // If this device held a seat that's still in its grace window, reclaim it
     // (seat + cards) instead of taking a new one.
@@ -126,9 +139,9 @@ export class TableRoom extends Room<RoomStateSchema> {
     // First joiner is the host.
     if (this.state.hostId === '') this.state.hostId = client.sessionId;
 
-    // No empty seats left → stop accepting joins (auto-lock; reopens if a seat
-    // frees, unlike an explicit host lock).
-    if (this.state.players.size >= this.maxClients) this.lock();
+    // Recompute matchmaking visibility (a full table drops out of Quick Play and
+    // the browse list, but stays joinable by id for spectators and reclaimers).
+    this.refreshDiscovery();
 
     logger.info(`[TableRoom] ${player.displayName} joined room ${this.roomId} at seat ${seat}`);
   }
@@ -139,6 +152,14 @@ export class TableRoom extends Room<RoomStateSchema> {
     this.signalingCounts.delete(client.sessionId);
     this.latestPresence.delete(client.sessionId);
     this.dirtyPresence.delete(client.sessionId);
+
+    // A spectator leaving has no seat, cards, or ghost hand to clean up.
+    if (this.spectators.has(client.sessionId)) {
+      this.spectators.delete(client.sessionId);
+      this.state.spectatorCount = this.spectators.size;
+      return;
+    }
+
     // Clear ghost hand for this player on all remaining clients
     this.broadcast(ServerMessageType.Presence, {
       type: ServerMessageType.Presence,
@@ -237,12 +258,30 @@ export class TableRoom extends Room<RoomStateSchema> {
       this.state.hostId = next ? next.id : '';
     }
 
-    // A seat freed up — reopen the room unless the host explicitly locked it.
-    if (this.locked && !this.state.locked && this.state.players.size < this.maxClients) {
-      this.unlock();
-    }
+    // A seat freed up — re-evaluate matchmaking visibility (no-op if the host
+    // explicitly locked the table).
+    this.refreshDiscovery();
 
     this.syncAudit();
+  }
+
+  /**
+   * Single authority for the room's matchmaking visibility. A host-locked table
+   * stays fully private. Otherwise the room is matchmade (Quick Play) only when
+   * it has a free player seat AND is public or has backfill enabled; it appears
+   * in the browse list only when public. Joining by id is unaffected — spectators
+   * and reclaimers can always reach a non-host-locked room.
+   */
+  private refreshDiscovery(): void {
+    if (this.state.locked) {
+      this.setPrivate(true);
+      this.setMetadata({ mode: this.state.mode, browsable: false });
+      return;
+    }
+    const playersFull = this.state.players.size >= this.state.maxPlayers;
+    const matchmade = !playersFull && (this.state.mode === RoomMode.Public || this.state.allowRandomFill);
+    this.setPrivate(!matchmade);
+    this.setMetadata({ mode: this.state.mode, browsable: matchmade && this.state.mode === RoomMode.Public });
   }
 
   private initDeck(): void {
@@ -283,7 +322,8 @@ export class TableRoom extends Room<RoomStateSchema> {
   private nextAvailableSeat(): number {
     const takenSeats = new Set<number>();
     this.state.players.forEach((p: PlayerSchema) => takenSeats.add(p.seat));
-    for (let i = 0; i < MAX_PLAYERS; i++) {
+    // Cap at the configured player count so spectator slots never become seats.
+    for (let i = 0; i < this.state.maxPlayers; i++) {
       if (!takenSeats.has(i)) return i;
     }
     return -1;
@@ -736,16 +776,9 @@ export class TableRoom extends Room<RoomStateSchema> {
       if (this.state.mode !== RoomMode.Private) return;
 
       this.state.allowRandomFill = enabled;
-      // Opening backfill makes the room matchmade by Quick Play, but it stays
-      // out of the browse list (browsable:false) so it isn't publicly listed.
-      this.setPrivate(!enabled);
-      this.setMetadata({ mode: RoomMode.Private, browsable: false });
-
-      // Reflect on the join gate unless the host explicitly locked the table.
-      if (!this.state.locked && this.state.players.size < this.maxClients) {
-        if (enabled) this.unlock();
-        else this.lock();
-      }
+      // refreshDiscovery makes the room Quick-Play matchmade while backfill is on
+      // (and a seat is free), but keeps it out of the public browse list.
+      this.refreshDiscovery();
     } catch (err) {
       if (err instanceof IntentError) this.rejectIntent(client, err.code, err.message);
       else throw err;
@@ -763,12 +796,13 @@ export class TableRoom extends Room<RoomStateSchema> {
     }
   }
 
-  /** Explicit, sticky lock: no further joins and removed from matchmaking. */
+  /** Explicit, sticky lock: no further joins (players OR spectators) and removed
+   *  from matchmaking. */
   private lockTable(): void {
     this.state.locked = true;
     this.state.allowRandomFill = false;
-    this.setPrivate(true);
     this.lock();
+    this.refreshDiscovery();
   }
 
   private handleKick(client: Client, targetId: string): void {

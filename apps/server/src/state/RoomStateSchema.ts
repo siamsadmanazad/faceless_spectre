@@ -9,6 +9,8 @@ export class RoomStateSchema extends Schema {
   /** sessionId of the host (room creator / first joiner). */
   @type('string') hostId: string = '';
   @type('string') mode: string = 'public';
+  /** Number of seatless observers currently watching. */
+  @type('number') spectatorCount: number = 0;
   /** Host has opened empty seats to random fill (private rooms only). */
   @type('boolean') allowRandomFill: boolean = false;
   /** No further joins accepted (full or host-locked). */

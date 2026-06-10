@@ -190,8 +190,33 @@ describe('matchmaking & join model', () => {
 
   it('a locked/full room rejects further joins by code', async () => {
     const roomHost = track(await client().create('table_room', { mode: RoomMode.Private, maxPlayers: 2, displayName: 'Host' }));
-    track(await client().joinById(roomHost.id, { displayName: 'Guest' })); // 2/2 → locks
+    track(await client().joinById(roomHost.id, { displayName: 'Guest' })); // 2/2 → player-full
 
     await expect(client().joinById(roomHost.id, { displayName: 'Late' })).rejects.toBeDefined();
+  });
+
+  it('a spectator joins a full table without a seat and cannot act', async () => {
+    // Fill a 2-seat public room.
+    const a = track(await client().create('table_room', { mode: RoomMode.Public, maxPlayers: 2, displayName: 'A' }));
+    const b = track(await client().joinOrCreate('table_room', { mode: RoomMode.Public, displayName: 'B' }));
+    expect(b.id).toBe(a.id);
+
+    // A would-be player is rejected (full)...
+    await expect(client().joinById(a.id, { displayName: 'late' })).rejects.toBeDefined();
+
+    // ...but a spectator can still join the full table by id.
+    const spec = track(await client().joinById(a.id, { displayName: 'Watcher', spectate: true }));
+    await waitFor(() => (spec.state as unknown as { spectatorCount: number }).spectatorCount === 1);
+    // No seat taken — players stays at 2.
+    expect((spec.state as unknown as { players: { size: number } }).players.size).toBe(2);
+
+    // A spectator action is rejected (no seat).
+    let specError: { code?: string } | null = null;
+    spec.onMessage(ServerMessageType.Error, (m: { code?: string }) => {
+      specError = m;
+    });
+    spec.send(IntentType.Draw, {});
+    await waitFor(() => specError !== null);
+    expect(specError!.code).toBe(ErrorCode.InvalidSeat);
   });
 });
