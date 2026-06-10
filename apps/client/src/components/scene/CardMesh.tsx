@@ -39,6 +39,9 @@ export function CardMesh({
   const hasFace = !!(rank && suit);
   // Lerped position — driven by useFrame so the mesh follows position smoothly
   const lerpedPos = useRef<[number, number, number]>([...position]);
+  // Tracked emissive intensity, mirrored here so the rest state can be detected
+  // without reading back off the materials each frame.
+  const emissive = useRef(0);
 
   // Shared, cached textures — never per-instance, never disposed here (owned by
   // the module-level cache and reused across every card for the whole session).
@@ -46,31 +49,47 @@ export function CardMesh({
   const faceTex = hasFace ? getFaceTexture(rank!, suit!) : backTex;
 
   useFrame(() => {
-    if (!meshRef.current) return;
+    const mesh = meshRef.current;
+    if (!mesh) return;
+
+    const lp = lerpedPos.current;
+    const targetScale = highlighted ? 1.08 : 1.0;
+    const targetIntensity = isSelected ? 0.35 : 0.0;
+
+    const dx = position[0] - lp[0];
+    const dy = position[1] - lp[1];
+    const dz = position[2] - lp[2];
+    const dScale = targetScale - mesh.scale.x;
+    const dEmissive = targetIntensity - emissive.current;
+
+    // At-rest fast path: a settled card does nothing per frame. With dozens of
+    // mostly-stationary cards this skips the bulk of the per-frame work (the
+    // material-array walk and Object3D writes) for everything not in motion.
+    if (
+      dx * dx + dy * dy + dz * dz < 1e-8 &&
+      Math.abs(dScale) < 1e-3 &&
+      Math.abs(dEmissive) < 1e-3
+    ) {
+      return;
+    }
 
     // Scale lerp for hover/selected highlight
-    const targetScale = highlighted ? 1.08 : 1.0;
-    meshRef.current.scale.setScalar(
-      meshRef.current.scale.x + (targetScale - meshRef.current.scale.x) * 0.12,
-    );
+    mesh.scale.setScalar(mesh.scale.x + dScale * 0.12);
 
     // Position lerp for smooth card movement
-    lerpedPos.current[0] += (position[0] - lerpedPos.current[0]) * 0.18;
-    lerpedPos.current[1] += (position[1] - lerpedPos.current[1]) * 0.18;
-    lerpedPos.current[2] += (position[2] - lerpedPos.current[2]) * 0.18;
-    meshRef.current.position.set(lerpedPos.current[0], lerpedPos.current[1], lerpedPos.current[2]);
+    lp[0] += dx * 0.18;
+    lp[1] += dy * 0.18;
+    lp[2] += dz * 0.18;
+    mesh.position.set(lp[0], lp[1], lp[2]);
 
     // Emissive lerp for selection glow
-    const mats = Array.isArray(meshRef.current.material)
-      ? meshRef.current.material
-      : [meshRef.current.material];
+    emissive.current += dEmissive * 0.15;
     const targetEmissive = isSelected ? SELECTED_EMISSIVE : NEUTRAL_EMISSIVE;
-    const targetIntensity = isSelected ? 0.35 : 0.0;
+    const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
     mats.forEach((m) => {
       if ('emissive' in m && 'emissiveIntensity' in m) {
         (m as { emissive: Color; emissiveIntensity: number }).emissive.lerp(targetEmissive, 0.15);
-        const cur = (m as { emissiveIntensity: number }).emissiveIntensity;
-        (m as { emissiveIntensity: number }).emissiveIntensity += (targetIntensity - cur) * 0.15;
+        (m as { emissiveIntensity: number }).emissiveIntensity = emissive.current;
       }
     });
   });
