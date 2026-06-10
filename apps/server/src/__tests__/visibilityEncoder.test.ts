@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { matchMaker } from 'colyseus';
-import { CardState, Visibility } from '@faceless-spectre/shared';
+import { CardState } from '@faceless-spectre/shared';
 import { RoomStateSchema } from '../state/RoomStateSchema';
 import { CardSchema } from '../state/CardSchema';
 import { TableRoom } from '../rooms/TableRoom';

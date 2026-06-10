@@ -15,7 +15,13 @@ jobs:
         with: { node-version: '20', cache: 'pnpm' }
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @faceless-spectre/shared build
+      - run: pnpm --filter @faceless-spectre/server lint
+      - run: pnpm --filter @faceless-spectre/client lint
+      # tsc build catches type/serialization-config regressions the runtime
+      # tests can't (e.g. useDefineForClassFields breaking schema serialization).
+      - run: pnpm --filter @faceless-spectre/server build
       - run: pnpm --filter @faceless-spectre/server test
+      - run: pnpm --filter @faceless-spectre/client test
 
   deploy-server:
     needs: test
