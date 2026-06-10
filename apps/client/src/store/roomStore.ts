@@ -49,6 +49,10 @@ interface RoomState {
   phase: string;
   deckSize: number;
   maxPlayers: number;
+  hostId: string;
+  mode: string;
+  allowRandomFill: boolean;
+  locked: boolean;
   cards: Map<string, CardView>;
   players: Map<string, PlayerView>;
   selectedCardId: string | null;
@@ -69,6 +73,10 @@ interface RoomState {
     deckSize?: number;
     maxPlayers?: number;
     phase?: string;
+    hostId?: string;
+    mode?: string;
+    allowRandomFill?: boolean;
+    locked?: boolean;
     cards?: Map<string, CardView>;
     players?: Map<string, PlayerView>;
   }) => void;
@@ -96,6 +104,10 @@ export const useRoomStore = create<RoomState>((set) => ({
   phase: 'lobby',
   deckSize: 0,
   maxPlayers: 6,
+  hostId: '',
+  mode: 'public',
+  allowRandomFill: false,
+  locked: false,
   cards: new Map(),
   players: new Map(),
   selectedCardId: null,
@@ -116,6 +128,10 @@ export const useRoomStore = create<RoomState>((set) => ({
       deckSize: next.deckSize ?? s.deckSize,
       maxPlayers: next.maxPlayers ?? s.maxPlayers,
       phase: next.phase ?? s.phase,
+      hostId: next.hostId ?? s.hostId,
+      mode: next.mode ?? s.mode,
+      allowRandomFill: next.allowRandomFill ?? s.allowRandomFill,
+      locked: next.locked ?? s.locked,
       cards: next.cards ?? s.cards,
       players: next.players ?? s.players,
     })),
@@ -205,6 +221,10 @@ export const useRoomStore = create<RoomState>((set) => ({
       phase: 'lobby',
       deckSize: 0,
       maxPlayers: 6,
+      hostId: '',
+      mode: 'public',
+      allowRandomFill: false,
+      locked: false,
       cards: new Map(),
       players: new Map(),
       selectedCardId: null,

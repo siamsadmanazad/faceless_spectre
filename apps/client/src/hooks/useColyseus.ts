@@ -182,6 +182,10 @@ export function useColyseus(roomId: string, displayName?: string) {
       if (typeof state.deckSize === 'number') next.deckSize = state.deckSize;
       if (typeof state.maxPlayers === 'number') next.maxPlayers = state.maxPlayers;
       if (typeof state.phase === 'string') next.phase = state.phase;
+      if (typeof state.hostId === 'string') next.hostId = state.hostId;
+      if (typeof state.mode === 'string') next.mode = state.mode;
+      if (typeof state.allowRandomFill === 'boolean') next.allowRandomFill = state.allowRandomFill;
+      if (typeof state.locked === 'boolean') next.locked = state.locked;
 
       const cards = state.cards as Map<string, Record<string, unknown>> | undefined;
       if (cards && typeof cards.forEach === 'function') {
@@ -258,5 +262,30 @@ export function useColyseus(roomId: string, displayName?: string) {
     [sendIntent],
   );
 
-  return { connected, error, draw, shuffle, deal, grab, release, sendPresence, sendIntent, roomRef };
+  // Host-only room controls (server rejects with NOT_HOST if the sender isn't host).
+  const setBackfill = useCallback(
+    (enabled: boolean) => sendIntent(IntentType.SetBackfill, { enabled }),
+    [sendIntent],
+  );
+  const lockTable = useCallback(() => sendIntent(IntentType.LockTable), [sendIntent]);
+  const kick = useCallback(
+    (targetId: string) => sendIntent(IntentType.Kick, { targetId }),
+    [sendIntent],
+  );
+
+  return {
+    connected,
+    error,
+    draw,
+    shuffle,
+    deal,
+    grab,
+    release,
+    sendPresence,
+    setBackfill,
+    lockTable,
+    kick,
+    sendIntent,
+    roomRef,
+  };
 }
