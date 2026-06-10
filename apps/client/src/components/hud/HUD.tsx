@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+import { RoomMode } from '@faceless-spectre/shared';
 import { useRoomStore } from '../../store/roomStore';
 
 interface HUDProps {
@@ -10,17 +12,52 @@ interface HUDProps {
   isMuted: boolean;
   toggleMute: () => void;
   audioEnabled: boolean;
+  setBackfill: (enabled: boolean) => void;
+  lockTable: () => void;
+  kick: (targetId: string) => void;
 }
 
-export function HUD({ connected, draw, onShuffleClick, deal, isMuted, toggleMute, audioEnabled }: HUDProps) {
+export function HUD({
+  connected,
+  draw,
+  onShuffleClick,
+  deal,
+  isMuted,
+  toggleMute,
+  audioEnabled,
+  setBackfill,
+  lockTable,
+  kick,
+}: HUDProps) {
   const deckSize = useRoomStore((s) => s.deckSize);
   const players = useRoomStore((s) => s.players);
   const localPlayerId = useRoomStore((s) => s.localPlayerId);
   const cards = useRoomStore((s) => s.cards);
+  const roomId = useRoomStore((s) => s.roomId);
+  const hostId = useRoomStore((s) => s.hostId);
+  const mode = useRoomStore((s) => s.mode);
+  const allowRandomFill = useRoomStore((s) => s.allowRandomFill);
+  const locked = useRoomStore((s) => s.locked);
+
+  const isHost = !!localPlayerId && localPlayerId === hostId;
+  const isPrivate = mode === RoomMode.Private;
+  const [copied, setCopied] = useState(false);
 
   const handCount = Array.from(cards.values()).filter(
     (c) => c.ownerId === localPlayerId && (c.state === 'HAND' || c.state === 'SELECTED'),
   ).length;
+
+  function copyInvite() {
+    if (!roomId) return;
+    const link = `${window.location.origin}/room/${roomId}`;
+    navigator.clipboard?.writeText(link).then(
+      () => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      },
+      () => {},
+    );
+  }
 
   return (
     <>
@@ -32,6 +69,36 @@ export function HUD({ connected, draw, onShuffleClick, deal, isMuted, toggleMute
         <span style={styles.stat}>Deck: {deckSize}</span>
         <span style={styles.stat}>Hand: {handCount}</span>
         <span style={styles.stat}>Players: {players.size}</span>
+      </div>
+
+      {/* Room / invite panel */}
+      <div style={styles.roomPanel}>
+        <div style={styles.roomCodeRow}>
+          <span style={styles.roomBadge}>{isPrivate ? '🔒 Private' : '🌐 Public'}</span>
+          {roomId && <span style={styles.roomCode}>{roomId}</span>}
+          <button style={styles.copyBtn} onClick={copyInvite}>
+            {copied ? 'Copied ✓' : 'Copy link'}
+          </button>
+        </div>
+
+        {isHost && (
+          <div style={styles.hostRow}>
+            {isPrivate && (
+              <button
+                style={{ ...styles.hostBtn, ...(allowRandomFill ? styles.hostBtnOn : {}) }}
+                onClick={() => setBackfill(!allowRandomFill)}
+                disabled={locked}
+                title="Let random players fill empty seats"
+              >
+                Randoms: {allowRandomFill ? 'On' : 'Off'}
+              </button>
+            )}
+            <button style={styles.hostBtn} onClick={lockTable} disabled={locked}>
+              {locked ? 'Locked' : 'Lock table'}
+            </button>
+            <span style={styles.hostTag}>host</span>
+          </div>
+        )}
       </div>
 
       {/* Action buttons */}
@@ -60,19 +127,21 @@ export function HUD({ connected, draw, onShuffleClick, deal, isMuted, toggleMute
           <div key={p.id} style={styles.playerEntry}>
             <span style={{ color: p.id === localPlayerId ? '#ffd700' : '#ccc' }}>
               {p.displayName}
+              {p.id === hostId ? ' 👑' : ''}
               {p.id === localPlayerId ? ' (you)' : ''}
             </span>
-            <span style={{ color: '#aaa', marginLeft: 8 }}>
-              Hand: {p.handSize}
-            </span>
+            <span style={{ color: '#aaa', marginLeft: 8 }}>Hand: {p.handSize}</span>
+            {isHost && p.id !== localPlayerId && (
+              <button style={styles.kickBtn} onClick={() => kick(p.id)} title="Remove player">
+                Kick
+              </button>
+            )}
           </div>
         ))}
       </div>
 
       {/* Keyboard hint */}
-      <div style={styles.hint}>
-        Orbit: drag · Zoom: scroll
-      </div>
+      <div style={styles.hint}>Orbit: drag · Zoom: scroll</div>
     </>
   );
 }
@@ -93,8 +162,47 @@ const styles: Record<string, React.CSSProperties> = {
     pointerEvents: 'none',
     userSelect: 'none',
   },
-  stat: {
-    color: '#ddd',
+  stat: { color: '#ddd' },
+  roomPanel: {
+    position: 'absolute',
+    top: 48,
+    left: 12,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+    background: 'rgba(0,0,0,0.55)',
+    padding: '8px 12px',
+    borderRadius: 6,
+    fontFamily: 'sans-serif',
+  },
+  roomCodeRow: { display: 'flex', alignItems: 'center', gap: 8 },
+  roomBadge: { fontSize: 12, color: '#cbd5ff' },
+  roomCode: { fontFamily: 'monospace', fontSize: 13, color: '#fff', letterSpacing: 1 },
+  copyBtn: {
+    padding: '4px 10px',
+    fontSize: 12,
+    borderRadius: 5,
+    border: '1px solid rgba(255,255,255,0.25)',
+    background: 'rgba(255,255,255,0.1)',
+    color: '#fff',
+    cursor: 'pointer',
+  },
+  hostRow: { display: 'flex', alignItems: 'center', gap: 8 },
+  hostBtn: {
+    padding: '4px 10px',
+    fontSize: 12,
+    borderRadius: 5,
+    border: '1px solid rgba(255,255,255,0.25)',
+    background: 'rgba(255,255,255,0.08)',
+    color: '#fff',
+    cursor: 'pointer',
+  },
+  hostBtnOn: { background: '#3a7d44', border: '1px solid #4caf50' },
+  hostTag: {
+    fontSize: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    color: 'rgba(255,255,255,0.4)',
   },
   controls: {
     position: 'absolute',
@@ -129,9 +237,16 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: 'monospace',
     fontSize: 12,
   },
-  playerEntry: {
-    display: 'flex',
-    alignItems: 'center',
+  playerEntry: { display: 'flex', alignItems: 'center' },
+  kickBtn: {
+    marginLeft: 10,
+    padding: '2px 8px',
+    fontSize: 11,
+    borderRadius: 4,
+    border: '1px solid rgba(255,80,80,0.5)',
+    background: 'rgba(255,80,80,0.15)',
+    color: '#ff9a9a',
+    cursor: 'pointer',
   },
   hint: {
     position: 'absolute',

@@ -29,7 +29,7 @@ export function TableScene({ roomId, displayName }: TableSceneProps) {
   // game pauses — render loop, presence, and voice — so it consumes nothing.
   const visible = usePageVisible();
 
-  const { connected, error, draw, shuffle, deal, grab, release, sendPresence, sendIntent, roomRef } = useColyseus(roomId, displayName);
+  const { connected, error, draw, shuffle, deal, grab, release, sendPresence, setBackfill, lockTable, kick, sendIntent, roomRef } = useColyseus(roomId, displayName);
   const { isMuted, toggleMute, audioEnabled } = useVoice({ roomRef, sendIntent, active: visible });
   const [shufflePanelOpen, setShufflePanelOpen] = useState(false);
   const selectedCardId = useRoomStore((s) => s.selectedCardId);
@@ -134,7 +134,7 @@ export function TableScene({ roomId, displayName }: TableSceneProps) {
         {process.env.NODE_ENV === 'development' && <Stats />}
       </Canvas>
 
-      <HUD connected={connected} draw={draw} onShuffleClick={() => setShufflePanelOpen(true)} deal={() => deal(5)} isMuted={isMuted} toggleMute={toggleMute} audioEnabled={audioEnabled} />
+      <HUD connected={connected} draw={draw} onShuffleClick={() => setShufflePanelOpen(true)} deal={() => deal(5)} isMuted={isMuted} toggleMute={toggleMute} audioEnabled={audioEnabled} setBackfill={setBackfill} lockTable={lockTable} kick={kick} />
 
       <ShuffleSelector
         open={shufflePanelOpen}
