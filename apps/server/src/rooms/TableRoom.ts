@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { Room, Client, logger } from 'colyseus';
 import {
   AnimationType,
@@ -154,7 +155,10 @@ export class TableRoom extends Room<RoomStateSchema> {
     this.deckTruth.order = [];
 
     STANDARD_DECK.forEach(({ rank, suit }, i) => {
-      const id = `${rank}${suit}`;
+      // Opaque, face-independent id. Deriving it from rank+suit would leak the
+      // card's identity to every client (id is broadcast unfiltered), defeating
+      // the @filter on rank/suit. The face lives only in the filtered fields.
+      const id = randomUUID();
       const card = new CardSchema();
       card.id = id;
       card.state = CardState.Deck;

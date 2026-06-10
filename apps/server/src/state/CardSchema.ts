@@ -14,8 +14,15 @@ export class CardSchema extends Schema {
   @type('string') state: string = '';
   @type('string') visibility: string = Visibility.Hidden;
   @type('string') ownerId: string = '';
-  @type('number') position: number = 0;
   @type('string') zoneId: string = '';
+
+  /**
+   * position is the card's initial deck index. Because the canonical deck order
+   * is public, that index maps deterministically to a face — so it is filtered
+   * exactly like rank/suit. Unauthorized viewers receive the default 0.
+   */
+  @filter(canSeeCardFace)
+  @type('number') position: number = 0;
 
   /**
    * rank and suit are filtered per-viewer: sent only to clients entitled to see the face.
