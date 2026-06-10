@@ -13,6 +13,7 @@ interface HUDProps {
   toggleMute: () => void;
   audioEnabled: boolean;
   setBackfill: (enabled: boolean) => void;
+  backfillVote: (approve: boolean) => void;
   lockTable: () => void;
   kick: (targetId: string) => void;
   spectate: boolean;
@@ -27,6 +28,7 @@ export function HUD({
   toggleMute,
   audioEnabled,
   setBackfill,
+  backfillVote,
   lockTable,
   kick,
   spectate,
@@ -43,6 +45,9 @@ export function HUD({
   const mutedPeers = useRoomStore((s) => s.mutedPeers);
   const togglePeerMute = useRoomStore((s) => s.togglePeerMute);
   const spectatorCount = useRoomStore((s) => s.spectatorCount);
+  const voteActive = useRoomStore((s) => s.backfillVoteActive);
+  const voteYes = useRoomStore((s) => s.backfillVoteYes);
+  const voteNo = useRoomStore((s) => s.backfillVoteNo);
 
   const isHost = !!localPlayerId && localPlayerId === hostId;
   const isPrivate = mode === RoomMode.Private;
@@ -103,6 +108,30 @@ export function HUD({
               {locked ? 'Locked' : 'Lock table'}
             </button>
             <span style={styles.hostTag}>host</span>
+          </div>
+        )}
+
+        {/* Backfill vote — any seated player can open a poll to let randoms fill
+            empty seats; a majority enables it. Hidden once randoms are allowed. */}
+        {!spectate && isPrivate && !allowRandomFill && (
+          <div style={styles.hostRow}>
+            {voteActive ? (
+              <>
+                <span style={styles.voteLabel}>Open seats? {voteYes}✓ {voteNo}✗</span>
+                <button style={styles.hostBtn} onClick={() => backfillVote(true)}>Yes</button>
+                <button style={styles.hostBtn} onClick={() => backfillVote(false)}>No</button>
+              </>
+            ) : (
+              !isHost && (
+                <button
+                  style={styles.hostBtn}
+                  onClick={() => backfillVote(true)}
+                  title="Start a vote to let random players fill empty seats"
+                >
+                  Vote: open seats
+                </button>
+              )
+            )}
           </div>
         )}
       </div>
@@ -219,6 +248,7 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
   },
   hostBtnOn: { background: '#3a7d44', border: '1px solid #4caf50' },
+  voteLabel: { fontSize: 12, color: '#cbd5ff' },
   hostTag: {
     fontSize: 10,
     textTransform: 'uppercase',

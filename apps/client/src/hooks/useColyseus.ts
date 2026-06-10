@@ -193,6 +193,9 @@ export function useColyseus(roomId: string, displayName?: string, spectate = fal
       if (typeof state.allowRandomFill === 'boolean') next.allowRandomFill = state.allowRandomFill;
       if (typeof state.locked === 'boolean') next.locked = state.locked;
       if (typeof state.spectatorCount === 'number') next.spectatorCount = state.spectatorCount;
+      if (typeof state.backfillVoteActive === 'boolean') next.backfillVoteActive = state.backfillVoteActive;
+      if (typeof state.backfillVoteYes === 'number') next.backfillVoteYes = state.backfillVoteYes;
+      if (typeof state.backfillVoteNo === 'number') next.backfillVoteNo = state.backfillVoteNo;
 
       const cards = state.cards as Map<string, Record<string, unknown>> | undefined;
       if (cards && typeof cards.forEach === 'function') {
@@ -274,6 +277,10 @@ export function useColyseus(roomId: string, displayName?: string, spectate = fal
     (enabled: boolean) => sendIntent(IntentType.SetBackfill, { enabled }),
     [sendIntent],
   );
+  const backfillVote = useCallback(
+    (approve: boolean) => sendIntent(IntentType.BackfillVote, { approve }),
+    [sendIntent],
+  );
   const lockTable = useCallback(() => sendIntent(IntentType.LockTable), [sendIntent]);
   const kick = useCallback(
     (targetId: string) => sendIntent(IntentType.Kick, { targetId }),
@@ -290,6 +297,7 @@ export function useColyseus(roomId: string, displayName?: string, spectate = fal
     release,
     sendPresence,
     setBackfill,
+    backfillVote,
     lockTable,
     kick,
     sendIntent,

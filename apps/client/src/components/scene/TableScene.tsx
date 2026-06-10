@@ -30,7 +30,7 @@ export function TableScene({ roomId, displayName, spectate = false }: TableScene
   // game pauses — render loop, presence, and voice — so it consumes nothing.
   const visible = usePageVisible();
 
-  const { connected, error, draw, shuffle, deal, grab, release, sendPresence, setBackfill, lockTable, kick, sendIntent, roomRef } = useColyseus(roomId, displayName, spectate);
+  const { connected, error, draw, shuffle, deal, grab, release, sendPresence, setBackfill, backfillVote, lockTable, kick, sendIntent, roomRef } = useColyseus(roomId, displayName, spectate);
   const { isMuted, toggleMute, audioEnabled } = useVoice({ roomRef, sendIntent, active: visible });
   const [shufflePanelOpen, setShufflePanelOpen] = useState(false);
   const selectedCardId = useRoomStore((s) => s.selectedCardId);
@@ -139,7 +139,7 @@ export function TableScene({ roomId, displayName, spectate = false }: TableScene
         {process.env.NODE_ENV === 'development' && <Stats />}
       </Canvas>
 
-      <HUD connected={connected} draw={draw} onShuffleClick={() => setShufflePanelOpen(true)} deal={() => deal(5)} isMuted={isMuted} toggleMute={toggleMute} audioEnabled={audioEnabled} setBackfill={setBackfill} lockTable={lockTable} kick={kick} spectate={spectate} />
+      <HUD connected={connected} draw={draw} onShuffleClick={() => setShufflePanelOpen(true)} deal={() => deal(5)} isMuted={isMuted} toggleMute={toggleMute} audioEnabled={audioEnabled} setBackfill={setBackfill} backfillVote={backfillVote} lockTable={lockTable} kick={kick} spectate={spectate} />
 
       <ShuffleSelector
         open={shufflePanelOpen}

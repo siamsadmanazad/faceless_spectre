@@ -54,6 +54,9 @@ interface RoomState {
   allowRandomFill: boolean;
   locked: boolean;
   spectatorCount: number;
+  backfillVoteActive: boolean;
+  backfillVoteYes: number;
+  backfillVoteNo: number;
   cards: Map<string, CardView>;
   players: Map<string, PlayerView>;
   selectedCardId: string | null;
@@ -79,6 +82,9 @@ interface RoomState {
     allowRandomFill?: boolean;
     locked?: boolean;
     spectatorCount?: number;
+    backfillVoteActive?: boolean;
+    backfillVoteYes?: number;
+    backfillVoteNo?: number;
     cards?: Map<string, CardView>;
     players?: Map<string, PlayerView>;
   }) => void;
@@ -114,6 +120,9 @@ export const useRoomStore = create<RoomState>((set) => ({
   allowRandomFill: false,
   locked: false,
   spectatorCount: 0,
+  backfillVoteActive: false,
+  backfillVoteYes: 0,
+  backfillVoteNo: 0,
   cards: new Map(),
   players: new Map(),
   selectedCardId: null,
@@ -140,6 +149,9 @@ export const useRoomStore = create<RoomState>((set) => ({
       allowRandomFill: next.allowRandomFill ?? s.allowRandomFill,
       locked: next.locked ?? s.locked,
       spectatorCount: next.spectatorCount ?? s.spectatorCount,
+      backfillVoteActive: next.backfillVoteActive ?? s.backfillVoteActive,
+      backfillVoteYes: next.backfillVoteYes ?? s.backfillVoteYes,
+      backfillVoteNo: next.backfillVoteNo ?? s.backfillVoteNo,
       cards: next.cards ?? s.cards,
       players: next.players ?? s.players,
     })),
@@ -242,6 +254,9 @@ export const useRoomStore = create<RoomState>((set) => ({
       allowRandomFill: false,
       locked: false,
       spectatorCount: 0,
+      backfillVoteActive: false,
+      backfillVoteYes: 0,
+      backfillVoteNo: 0,
       cards: new Map(),
       players: new Map(),
       selectedCardId: null,
