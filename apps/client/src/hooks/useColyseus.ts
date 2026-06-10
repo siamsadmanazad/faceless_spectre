@@ -49,11 +49,7 @@ export function useColyseus(roomId: string, displayName?: string) {
   const {
     setRoomId,
     setLocalPlayerId,
-    setDeckSize,
-    setMaxPlayers,
-    setPhase,
-    upsertCard,
-    upsertPlayer,
+    applyServerState,
     setSelectedCard,
     clearRoom,
   } = useRoomStore();
@@ -178,23 +174,34 @@ export function useColyseus(roomId: string, displayName?: string) {
     }
 
     function syncFullState(state: Record<string, unknown>) {
-      if (typeof state.deckSize === 'number') setDeckSize(state.deckSize);
-      if (typeof state.maxPlayers === 'number') setMaxPlayers(state.maxPlayers);
-      if (typeof state.phase === 'string') setPhase(state.phase);
+      // Build the next snapshot once and apply it in a single store update.
+      // Rebuilding each map from the incoming state also drops any entity that
+      // disappeared server-side, and avoids cloning the maps N times per patch.
+      const next: Parameters<typeof applyServerState>[0] = {};
+
+      if (typeof state.deckSize === 'number') next.deckSize = state.deckSize;
+      if (typeof state.maxPlayers === 'number') next.maxPlayers = state.maxPlayers;
+      if (typeof state.phase === 'string') next.phase = state.phase;
 
       const cards = state.cards as Map<string, Record<string, unknown>> | undefined;
       if (cards && typeof cards.forEach === 'function') {
+        const cardMap = new Map<string, CardView>();
         cards.forEach((card, id) => {
-          upsertCard(schemaToCardView({ ...card, id }));
+          cardMap.set(id, schemaToCardView({ ...card, id }));
         });
+        next.cards = cardMap;
       }
 
       const players = state.players as Map<string, Record<string, unknown>> | undefined;
       if (players && typeof players.forEach === 'function') {
+        const playerMap = new Map<string, PlayerView>();
         players.forEach((player, id) => {
-          upsertPlayer(schemaToPlayerView({ ...player, id }));
+          playerMap.set(id, schemaToPlayerView({ ...player, id }));
         });
+        next.players = playerMap;
       }
+
+      applyServerState(next);
     }
 
     connect();

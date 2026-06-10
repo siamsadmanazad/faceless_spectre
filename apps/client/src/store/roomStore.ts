@@ -60,6 +60,18 @@ interface RoomState {
   setDeckSize: (n: number) => void;
   setMaxPlayers: (n: number) => void;
   setPhase: (p: string) => void;
+  /**
+   * Apply a full server-state snapshot in a single store update. The caller
+   * builds the cards/players maps once; replacing the whole map also drops any
+   * entity that disappeared server-side. One `set` per patch instead of N.
+   */
+  applyServerState: (next: {
+    deckSize?: number;
+    maxPlayers?: number;
+    phase?: string;
+    cards?: Map<string, CardView>;
+    players?: Map<string, PlayerView>;
+  }) => void;
   upsertCard: (card: CardView) => void;
   removeCard: (id: string) => void;
   upsertPlayer: (player: PlayerView) => void;
@@ -98,6 +110,15 @@ export const useRoomStore = create<RoomState>((set) => ({
   setDeckSize: (n) => set({ deckSize: n }),
   setMaxPlayers: (n) => set({ maxPlayers: n }),
   setPhase: (p) => set({ phase: p }),
+
+  applyServerState: (next) =>
+    set((s) => ({
+      deckSize: next.deckSize ?? s.deckSize,
+      maxPlayers: next.maxPlayers ?? s.maxPlayers,
+      phase: next.phase ?? s.phase,
+      cards: next.cards ?? s.cards,
+      players: next.players ?? s.players,
+    })),
   setSelectedCard: (id) => set({ selectedCardId: id }),
   clearDeckAnimation: () => set({ deckAnimation: null }),
   setMuted: (v) => set({ isMuted: v }),
