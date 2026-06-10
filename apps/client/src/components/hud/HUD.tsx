@@ -38,6 +38,8 @@ export function HUD({
   const mode = useRoomStore((s) => s.mode);
   const allowRandomFill = useRoomStore((s) => s.allowRandomFill);
   const locked = useRoomStore((s) => s.locked);
+  const mutedPeers = useRoomStore((s) => s.mutedPeers);
+  const togglePeerMute = useRoomStore((s) => s.togglePeerMute);
 
   const isHost = !!localPlayerId && localPlayerId === hostId;
   const isPrivate = mode === RoomMode.Private;
@@ -131,6 +133,15 @@ export function HUD({
               {p.id === localPlayerId ? ' (you)' : ''}
             </span>
             <span style={{ color: '#aaa', marginLeft: 8 }}>Hand: {p.handSize}</span>
+            {p.id !== localPlayerId && (
+              <button
+                style={styles.muteBtn}
+                onClick={() => togglePeerMute(p.id)}
+                title={mutedPeers.has(p.id) ? 'Unmute this player' : 'Mute this player'}
+              >
+                {mutedPeers.has(p.id) ? '🔇' : '🔊'}
+              </button>
+            )}
             {isHost && p.id !== localPlayerId && (
               <button style={styles.kickBtn} onClick={() => kick(p.id)} title="Remove player">
                 Kick
@@ -238,6 +249,16 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 12,
   },
   playerEntry: { display: 'flex', alignItems: 'center' },
+  muteBtn: {
+    marginLeft: 8,
+    padding: '2px 6px',
+    fontSize: 11,
+    borderRadius: 4,
+    border: '1px solid rgba(255,255,255,0.2)',
+    background: 'rgba(255,255,255,0.08)',
+    cursor: 'pointer',
+    lineHeight: 1,
+  },
   kickBtn: {
     marginLeft: 10,
     padding: '2px 8px',

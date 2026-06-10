@@ -28,6 +28,7 @@ export function useVoice({ roomRef, sendIntent, active = true }: UseVoiceArgs) {
   const isMuted = useRoomStore((s) => s.isMuted);
   const setMuted = useRoomStore((s) => s.setMuted);
   const setAudioEnabled = useRoomStore((s) => s.setAudioEnabled);
+  const mutedPeers = useRoomStore((s) => s.mutedPeers);
 
   const localStream = useRef<MediaStream | null>(null);
   const peerConnections = useRef<Map<string, RTCPeerConnection>>(new Map());
@@ -95,9 +96,9 @@ export function useVoice({ roomRef, sendIntent, active = true }: UseVoiceArgs) {
           audio.autoplay = true;
           document.body.appendChild(audio);
         }
-        // Start silenced if the tab is currently inactive; the visibility
-        // effect below restores it when the tab becomes active again.
-        audio.muted = !activeRef.current;
+        // Start silenced if the tab is inactive or this peer is locally muted;
+        // the media-state effect below reconciles on any change.
+        audio.muted = !activeRef.current || useRoomStore.getState().mutedPeers.has(peerId);
         audio.srcObject = streams[0];
       };
 
@@ -203,11 +204,12 @@ export function useVoice({ roomRef, sendIntent, active = true }: UseVoiceArgs) {
       t.enabled = active && !isMuted;
     });
 
+    // A peer is silenced when the tab is inactive OR the user locally muted them.
     peerConnections.current.forEach((_pc, peerId) => {
       const el = document.getElementById(`audio-${peerId}`) as HTMLAudioElement | null;
-      if (el) el.muted = !active;
+      if (el) el.muted = !active || mutedPeers.has(peerId);
     });
-  }, [active, isMuted, players]);
+  }, [active, isMuted, players, mutedPeers]);
 
   // Manual mute just records intent; the effect above enforces the track state.
   const toggleMute = useCallback(() => {

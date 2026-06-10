@@ -95,6 +95,9 @@ interface RoomState {
   audioEnabled: boolean;
   setMuted: (v: boolean) => void;
   setAudioEnabled: (v: boolean) => void;
+  /** Peers this client has locally silenced (independent of the tab-active gate). */
+  mutedPeers: Set<string>;
+  togglePeerMute: (peerId: string) => void;
   clearRoom: () => void;
 }
 
@@ -116,6 +119,7 @@ export const useRoomStore = create<RoomState>((set) => ({
   presences: new Map(),
   isMuted: false,
   audioEnabled: false,
+  mutedPeers: new Set(),
 
   setRoomId: (id) => set({ roomId: id }),
   setLocalPlayerId: (id) => set({ localPlayerId: id }),
@@ -139,6 +143,14 @@ export const useRoomStore = create<RoomState>((set) => ({
   clearDeckAnimation: () => set({ deckAnimation: null }),
   setMuted: (v) => set({ isMuted: v }),
   setAudioEnabled: (v) => set({ audioEnabled: v }),
+
+  togglePeerMute: (peerId) =>
+    set((s) => {
+      const next = new Set(s.mutedPeers);
+      if (next.has(peerId)) next.delete(peerId);
+      else next.add(peerId);
+      return { mutedPeers: next };
+    }),
 
   handleAnimationCommand: (cmd) =>
     set((s) => {
@@ -233,6 +245,7 @@ export const useRoomStore = create<RoomState>((set) => ({
       presences: new Map(),
       isMuted: false,
       audioEnabled: false,
+      mutedPeers: new Set(),
     }),
 }));
 
