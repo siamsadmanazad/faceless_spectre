@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { getClientId } from '../lib/clientId';
 
 const SERVER = process.env.NEXT_PUBLIC_SERVER_URL ?? 'http://localhost:2567';
 const NAME_KEY = 'fs_name';
@@ -71,7 +72,7 @@ export default function LobbyPage() {
       const res = await fetch(`${SERVER}/rooms/quickplay`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ displayName: name }),
+        body: JSON.stringify({ displayName: name, clientId: getClientId() }),
       });
       if (!res.ok) throw new Error('Quick Play failed');
       const { roomId, seatReservation } = await res.json();
@@ -90,7 +91,7 @@ export default function LobbyPage() {
       const res = await fetch(`${SERVER}/rooms/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ displayName: name, maxPlayers, mode: 'private' }),
+        body: JSON.stringify({ displayName: name, maxPlayers, mode: 'private', clientId: getClientId() }),
       });
       if (!res.ok) throw new Error('Failed to create table');
       const { roomId, seatReservation } = await res.json();

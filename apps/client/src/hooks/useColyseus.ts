@@ -13,6 +13,7 @@ import {
   type PresenceMessage,
 } from '@faceless-spectre/shared';
 import { useRoomStore, CardView, PlayerView } from '../store/roomStore';
+import { getClientId } from '../lib/clientId';
 
 const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL ?? 'http://localhost:2567';
 
@@ -107,7 +108,7 @@ export function useColyseus(roomId: string, displayName?: string) {
           const res = await fetch(`${SERVER_URL}/rooms/join`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ roomId, displayName: displayName ?? 'Player' }),
+            body: JSON.stringify({ roomId, displayName: displayName ?? 'Player', clientId: getClientId() }),
           });
 
           if (!res.ok) {

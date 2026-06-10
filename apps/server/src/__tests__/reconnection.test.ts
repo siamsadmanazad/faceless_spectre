@@ -164,4 +164,54 @@ describe('TableRoom — reconnection', () => {
       }
     });
   });
+
+  it('a returning device reclaims its held seat and cards via clientId', async () => {
+    const internals = room as unknown as RoomInternals;
+    const original = makeMockClient('sess-old');
+    await internals.onJoin(original, { displayName: 'Mara', clientId: 'device-xyz' });
+    internals.handleDraw(original, 2);
+    const seat = room.state.players.get('sess-old')!.seat;
+
+    // Hold the seat: stub allowReconnection to hang, then disconnect unconsented.
+    internals.allowReconnection = () => new Promise<void>(() => {});
+    internals.onLeave(original, false);
+    await new Promise((r) => setTimeout(r, 10));
+    expect(room.state.players.get('sess-old')!.connected).toBe(false);
+
+    // Same device returns on a NEW socket (lost token / reopened link).
+    const returning = makeMockClient('sess-new');
+    await internals.onJoin(returning, { displayName: 'Mara', clientId: 'device-xyz' });
+
+    // Old key is gone; the seat is adopted under the new sessionId, connected.
+    expect(room.state.players.has('sess-old')).toBe(false);
+    const reclaimed = room.state.players.get('sess-new');
+    expect(reclaimed).toBeDefined();
+    expect(reclaimed!.seat).toBe(seat);
+    expect(reclaimed!.connected).toBe(true);
+
+    // The 2 held cards now belong to the new session.
+    let owned = 0;
+    room.state.cards.forEach((card: CardSchema) => {
+      if (card.ownerId === 'sess-new') owned++;
+    });
+    expect(owned).toBe(2);
+  });
+
+  it('a different clientId does not reclaim a held seat', async () => {
+    const internals = room as unknown as RoomInternals;
+    const original = makeMockClient('hold-old');
+    await internals.onJoin(original, { displayName: 'Held', clientId: 'device-A' });
+    const heldSeat = room.state.players.get('hold-old')!.seat;
+
+    internals.allowReconnection = () => new Promise<void>(() => {});
+    internals.onLeave(original, false);
+    await new Promise((r) => setTimeout(r, 10));
+
+    // A different device joins — it must NOT take the held seat.
+    const other = makeMockClient('other-new');
+    await internals.onJoin(other, { displayName: 'Other', clientId: 'device-B' });
+
+    expect(room.state.players.has('hold-old')).toBe(true); // held seat intact
+    expect(room.state.players.get('other-new')!.seat).not.toBe(heldSeat);
+  });
 });

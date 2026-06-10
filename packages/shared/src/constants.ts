@@ -15,6 +15,11 @@ export const STANDARD_DECK: ReadonlyArray<{ rank: Rank; suit: Suit }> = Object.f
 
 export const MAX_MULTI_DRAW = 13;
 
+/** How long a disconnected player's seat (and cards) are held for reclaim.
+ *  Covers both same-socket token reconnects and a return on a new socket with
+ *  the same stable clientId (e.g. reopening the invite link on flaky wifi). */
+export const RECONNECT_GRACE_SEC = 120;
+
 export const PRESENCE_THROTTLE_MS = 50;
 export const MAX_INTENTS_PER_SECOND = 20;
 /** Server-side flush cadence for aggregated presence (one broadcast per tick). */

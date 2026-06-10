@@ -11,6 +11,7 @@ import {
   MAX_PLAYERS,
   MIN_PLAYERS,
   PRESENCE_FLUSH_MS,
+  RECONNECT_GRACE_SEC,
   RoomMode,
   ServerMessageType,
   ShuffleIntensity,
@@ -99,7 +100,13 @@ export class TableRoom extends Room<RoomStateSchema> {
     logger.info(`[TableRoom] room ${this.roomId} created (max ${this.maxClients} players)`);
   }
 
-  onJoin(client: Client, options?: { displayName?: string; maskId?: string }): void {
+  onJoin(client: Client, options?: { displayName?: string; maskId?: string; clientId?: string }): void {
+    const clientId = options?.clientId ?? '';
+
+    // If this device held a seat that's still in its grace window, reclaim it
+    // (seat + cards) instead of taking a new one.
+    if (clientId && this.tryReclaimSeat(client, clientId)) return;
+
     const seat = this.nextAvailableSeat();
     if (seat === -1) {
       throw new Error(ErrorCode.RoomFull);
@@ -107,6 +114,7 @@ export class TableRoom extends Room<RoomStateSchema> {
 
     const player = new PlayerSchema();
     player.id = client.sessionId;
+    player.clientId = clientId;
     player.displayName = options?.displayName ?? `Player ${seat + 1}`;
     player.seat = seat;
     player.maskId = options?.maskId ?? 'faceless';
@@ -146,12 +154,17 @@ export class TableRoom extends Room<RoomStateSchema> {
       return;
     }
 
-    // Unconsentented disconnect — hold seat for 30 seconds
+    // Unconsented disconnect — hold the seat (and cards) for the grace window.
+    // The same socket can reconnect via token; a return on a NEW socket with the
+    // same clientId reclaims it in onJoin (tryReclaimSeat) while it's held here.
     player.connected = false;
-    logger.info(`[TableRoom] ${player.displayName} disconnected — holding seat for 30s`);
+    logger.info(`[TableRoom] ${player.displayName} disconnected — holding seat for ${RECONNECT_GRACE_SEC}s`);
     try {
-      await this.allowReconnection(client, 30);
-      player.connected = true;
+      await this.allowReconnection(client, RECONNECT_GRACE_SEC);
+      // Resolves only for a same-socket token reconnect. If the seat was already
+      // reclaimed by clientId on a new socket, it's re-keyed and this is a no-op.
+      const current = this.state.players.get(client.sessionId);
+      if (current) current.connected = true;
       logger.info(`[TableRoom] ${player.displayName} reconnected to room ${this.roomId}`);
     } catch {
       logger.info(`[TableRoom] ${player.displayName} reconnection timed out — removing`);
@@ -181,6 +194,34 @@ export class TableRoom extends Room<RoomStateSchema> {
       history: this.deckTruth.history,
       rejectedIntents: this.rejectedIntents,
     });
+  }
+
+  /**
+   * Adopt a held (disconnected) seat for a returning device. Re-keys the player
+   * under the new sessionId, remaps card ownership and host, and marks them
+   * connected. Returns false when there's no reclaimable seat for this clientId.
+   */
+  private tryReclaimSeat(client: Client, clientId: string): boolean {
+    let held: PlayerSchema | undefined;
+    this.state.players.forEach((p: PlayerSchema) => {
+      if (!held && !p.connected && p.clientId === clientId) held = p;
+    });
+    if (!held) return false;
+
+    const oldId = held.id;
+    const newId = client.sessionId;
+    if (oldId !== newId) {
+      this.state.cards.forEach((card: CardSchema) => {
+        if (card.ownerId === oldId) card.ownerId = newId;
+      });
+      held.id = newId;
+      this.state.players.delete(oldId);
+      this.state.players.set(newId, held);
+      if (this.state.hostId === oldId) this.state.hostId = newId;
+    }
+    held.connected = true;
+    logger.info(`[TableRoom] ${held.displayName} reclaimed seat ${held.seat} in room ${this.roomId}`);
+    return true;
   }
 
   private removePlayer(sessionId: string): void {

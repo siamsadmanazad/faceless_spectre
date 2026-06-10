@@ -61,10 +61,10 @@ async function main(): Promise<void> {
 
   /** Quick Play — drop into any matchmade public/backfill room with a free
    *  seat, or create a fresh public one. */
-  app.post<{ Body: { displayName?: string; maskId?: string } }>('/rooms/quickplay', async (req, reply) => {
+  app.post<{ Body: { displayName?: string; maskId?: string; clientId?: string } }>('/rooms/quickplay', async (req, reply) => {
     try {
-      const { displayName, maskId } = req.body ?? {};
-      const reservation = await matchMaker.joinOrCreate('table_room', { displayName, maskId, mode: 'public' });
+      const { displayName, maskId, clientId } = req.body ?? {};
+      const reservation = await matchMaker.joinOrCreate('table_room', { displayName, maskId, clientId, mode: 'public' });
       return reply.code(200).send({ roomId: reservation.room.roomId, seatReservation: reservation });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Quick Play failed';
@@ -73,14 +73,15 @@ async function main(): Promise<void> {
   });
 
   /** Create a new table (public or private) and return its code + reservation. */
-  app.post<{ Body: { displayName?: string; maskId?: string; maxPlayers?: number; mode?: string } }>(
+  app.post<{ Body: { displayName?: string; maskId?: string; maxPlayers?: number; mode?: string; clientId?: string } }>(
     '/rooms/create',
     async (req, reply) => {
       try {
-        const { displayName, maskId, maxPlayers, mode } = req.body ?? {};
+        const { displayName, maskId, maxPlayers, mode, clientId } = req.body ?? {};
         const reservation = await matchMaker.create('table_room', {
           displayName,
           maskId,
+          clientId,
           maxPlayers,
           mode: mode === 'private' ? 'private' : 'public',
         });
@@ -97,12 +98,12 @@ async function main(): Promise<void> {
   );
 
   /** Join an existing room by code/id, or create one as a fallback. */
-  app.post<{ Body: { roomId?: string; displayName?: string; maskId?: string; maxPlayers?: number } }>(
+  app.post<{ Body: { roomId?: string; displayName?: string; maskId?: string; maxPlayers?: number; clientId?: string } }>(
     '/rooms/join',
     async (req, reply) => {
       try {
-        const { roomId, displayName, maskId, maxPlayers } = req.body ?? {};
-        const joinOptions = { displayName, maskId };
+        const { roomId, displayName, maskId, maxPlayers, clientId } = req.body ?? {};
+        const joinOptions = { displayName, maskId, clientId };
 
         const reservation = roomId
           ? await matchMaker.joinById(roomId, joinOptions)
