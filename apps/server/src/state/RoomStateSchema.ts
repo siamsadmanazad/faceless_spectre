@@ -6,6 +6,13 @@ export class RoomStateSchema extends Schema {
   @type('string') phase: string = 'lobby';
   @type('number') deckSize: number = 0;
   @type('number') maxPlayers: number = 6;
+  /** sessionId of the host (room creator / first joiner). */
+  @type('string') hostId: string = '';
+  @type('string') mode: string = 'public';
+  /** Host has opened empty seats to random fill (private rooms only). */
+  @type('boolean') allowRandomFill: boolean = false;
+  /** No further joins accepted (full or host-locked). */
+  @type('boolean') locked: boolean = false;
   @type({ map: PlayerSchema }) players = new MapSchema<PlayerSchema>();
   @type({ map: CardSchema }) cards = new MapSchema<CardSchema>();
 }

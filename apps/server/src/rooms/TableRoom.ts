@@ -11,6 +11,7 @@ import {
   MAX_PLAYERS,
   MIN_PLAYERS,
   PRESENCE_FLUSH_MS,
+  RoomMode,
   ServerMessageType,
   ShuffleIntensity,
   ShuffleStyle,
@@ -26,6 +27,9 @@ import {
   type GrabIntent,
   type ReleaseIntent,
   type PresenceIntent,
+  type SetBackfillIntent,
+  type LockTableIntent,
+  type KickIntent,
   type WebRTCOfferIntent,
   type WebRTCAnswerIntent,
   type WebRTCIceIntent,
@@ -72,13 +76,21 @@ export class TableRoom extends Room<RoomStateSchema> {
   /** Structured record of every rejected intent for the audit trail. */
   private rejectedIntents: Array<{ timestamp: number; sessionId: string; errorCode: ErrorCode; message: string }> = [];
 
-  onCreate(options?: { maxPlayers?: number }): void {
+  onCreate(options?: { maxPlayers?: number; mode?: string }): void {
     if (options?.maxPlayers !== undefined) {
       const clamped = Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, Math.floor(options.maxPlayers)));
       this.maxClients = clamped;
     }
     this.setState(new RoomStateSchema());
     this.state.maxPlayers = this.maxClients;
+
+    // Private rooms are reachable only by code/link until the host opts into
+    // backfill; public rooms are matchmade by Quick Play and shown in /lobby.
+    const mode = options?.mode === RoomMode.Private ? RoomMode.Private : RoomMode.Public;
+    this.state.mode = mode;
+    this.setPrivate(mode === RoomMode.Private);
+    this.setMetadata({ mode, browsable: mode === RoomMode.Public });
+
     this.initDeck();
     this.registerIntentHandlers();
     // Aggregate presence: one broadcast per tick carrying every player whose hand
@@ -102,6 +114,14 @@ export class TableRoom extends Room<RoomStateSchema> {
     player.handSize = 0;
 
     this.state.players.set(client.sessionId, player);
+
+    // First joiner is the host.
+    if (this.state.hostId === '') this.state.hostId = client.sessionId;
+
+    // No empty seats left → stop accepting joins (auto-lock; reopens if a seat
+    // frees, unlike an explicit host lock).
+    if (this.state.players.size >= this.maxClients) this.lock();
+
     logger.info(`[TableRoom] ${player.displayName} joined room ${this.roomId} at seat ${seat}`);
   }
 
@@ -166,6 +186,21 @@ export class TableRoom extends Room<RoomStateSchema> {
   private removePlayer(sessionId: string): void {
     this.returnCardsToNobody(sessionId);
     this.state.players.delete(sessionId);
+
+    // If the host left, pass the role to the next seated player (lowest seat).
+    if (this.state.hostId === sessionId) {
+      let next: PlayerSchema | undefined;
+      this.state.players.forEach((p: PlayerSchema) => {
+        if (!next || p.seat < next.seat) next = p;
+      });
+      this.state.hostId = next ? next.id : '';
+    }
+
+    // A seat freed up — reopen the room unless the host explicitly locked it.
+    if (this.locked && !this.state.locked && this.state.players.size < this.maxClients) {
+      this.unlock();
+    }
+
     this.syncAudit();
   }
 
@@ -331,6 +366,18 @@ export class TableRoom extends Room<RoomStateSchema> {
 
     this.onMessage(IntentType.Reveal, (client, msg: RevealIntent) => {
       this.handleReveal(client, msg.cardId);
+    });
+
+    this.onMessage(IntentType.SetBackfill, (client, msg: SetBackfillIntent) => {
+      this.handleSetBackfill(client, msg.enabled);
+    });
+
+    this.onMessage(IntentType.LockTable, (client, _msg: LockTableIntent) => {
+      this.handleLockTable(client);
+    });
+
+    this.onMessage(IntentType.Kick, (client, msg: KickIntent) => {
+      this.handleKick(client, msg.targetId);
     });
 
     this.onMessage(IntentType.WebRTCOffer, (client, msg: WebRTCOfferIntent) => {
@@ -629,6 +676,73 @@ export class TableRoom extends Room<RoomStateSchema> {
       } else {
         throw err;
       }
+    }
+  }
+
+  // ── Host-only room controls ────────────────────────────────────────────────
+
+  private requireHost(client: Client): void {
+    if (client.sessionId !== this.state.hostId) {
+      throw new IntentError(ErrorCode.NotHost, `${client.sessionId} is not the host`);
+    }
+  }
+
+  private handleSetBackfill(client: Client, enabled: boolean): void {
+    try {
+      this.checkRateLimit(client);
+      this.requireHost(client);
+      // Only meaningful for private rooms; public rooms are always fillable.
+      if (this.state.mode !== RoomMode.Private) return;
+
+      this.state.allowRandomFill = enabled;
+      // Opening backfill makes the room matchmade by Quick Play, but it stays
+      // out of the browse list (browsable:false) so it isn't publicly listed.
+      this.setPrivate(!enabled);
+      this.setMetadata({ mode: RoomMode.Private, browsable: false });
+
+      // Reflect on the join gate unless the host explicitly locked the table.
+      if (!this.state.locked && this.state.players.size < this.maxClients) {
+        if (enabled) this.unlock();
+        else this.lock();
+      }
+    } catch (err) {
+      if (err instanceof IntentError) this.rejectIntent(client, err.code, err.message);
+      else throw err;
+    }
+  }
+
+  private handleLockTable(client: Client): void {
+    try {
+      this.checkRateLimit(client);
+      this.requireHost(client);
+      this.lockTable();
+    } catch (err) {
+      if (err instanceof IntentError) this.rejectIntent(client, err.code, err.message);
+      else throw err;
+    }
+  }
+
+  /** Explicit, sticky lock: no further joins and removed from matchmaking. */
+  private lockTable(): void {
+    this.state.locked = true;
+    this.state.allowRandomFill = false;
+    this.setPrivate(true);
+    this.lock();
+  }
+
+  private handleKick(client: Client, targetId: string): void {
+    try {
+      this.checkRateLimit(client);
+      this.requireHost(client);
+      if (targetId === this.state.hostId) return; // host can't kick themselves
+      const target = this.clients.find((c) => c.sessionId === targetId);
+      // Remove first so the ensuing onLeave finds no player and skips the
+      // 30s reconnection hold — a kick is immediate and final.
+      this.removePlayer(targetId);
+      if (target) target.leave();
+    } catch (err) {
+      if (err instanceof IntentError) this.rejectIntent(client, err.code, err.message);
+      else throw err;
     }
   }
 
