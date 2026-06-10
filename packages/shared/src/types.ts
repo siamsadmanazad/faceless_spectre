@@ -5,6 +5,7 @@ import {
   HandState,
   IntentType,
   Rank,
+  RoomMode,
   ServerMessageType,
   ShuffleIntensity,
   ShuffleStyle,
@@ -78,6 +79,13 @@ export interface RoomStateView {
   cards: CardView[];
   deckSize: number;
   phase: 'lobby' | 'playing';
+  /** sessionId of the host (room creator / seat 0). */
+  hostId: string;
+  mode: RoomMode;
+  /** Host has opened empty seats to random fill (private rooms). */
+  allowRandomFill: boolean;
+  /** No further joins accepted (full or host-locked). */
+  locked: boolean;
 }
 
 // ── Presence ─────────────────────────────────────────────────────────────────
@@ -167,6 +175,22 @@ export interface PresenceIntent extends BaseIntent {
   maskId: string;
 }
 
+export interface SetBackfillIntent extends BaseIntent {
+  type: IntentType.SetBackfill;
+  /** Host-only: allow randoms to fill empty seats in a private room. */
+  enabled: boolean;
+}
+
+export interface LockTableIntent extends BaseIntent {
+  type: IntentType.LockTable;
+}
+
+export interface KickIntent extends BaseIntent {
+  type: IntentType.Kick;
+  /** sessionId of the player the host wants to remove. */
+  targetId: string;
+}
+
 export interface WebRTCOfferIntent extends BaseIntent {
   type: IntentType.WebRTCOffer;
   targetId: string;
@@ -198,6 +222,9 @@ export type ClientIntent =
   | RevealIntent
   | ChatIntent
   | PresenceIntent
+  | SetBackfillIntent
+  | LockTableIntent
+  | KickIntent
   | WebRTCOfferIntent
   | WebRTCAnswerIntent
   | WebRTCIceIntent;

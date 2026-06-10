@@ -69,6 +69,11 @@ export enum AnimationType {
   Fan = 'FAN',
 }
 
+export enum RoomMode {
+  Public = 'public',
+  Private = 'private',
+}
+
 export enum IntentType {
   Grab = 'grab',
   Release = 'release',
@@ -82,6 +87,9 @@ export enum IntentType {
   Reveal = 'reveal',
   Chat = 'chat',
   Presence = 'presence',
+  SetBackfill = 'setBackfill',
+  LockTable = 'lockTable',
+  Kick = 'kick',
   WebRTCOffer = 'webrtcOffer',
   WebRTCAnswer = 'webrtcAnswer',
   WebRTCIce = 'webrtcIce',
@@ -106,4 +114,5 @@ export enum ErrorCode {
   UnknownCard = 'UNKNOWN_CARD',
   RateLimited = 'RATE_LIMITED',
   UnknownIntent = 'UNKNOWN_INTENT',
+  NotHost = 'NOT_HOST',
 }
