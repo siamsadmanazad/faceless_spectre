@@ -117,6 +117,10 @@ export class TableRoom extends Room<RoomStateSchema> {
     this.syncAudit();
     try {
       await auditStore.persist(this.roomId);
+      // Evict from the in-memory store now that it's durable in Postgres —
+      // otherwise every closed room's history accumulates in-process forever.
+      // The /audit endpoint falls back to Postgres for closed rooms.
+      auditStore.delete(this.roomId);
     } catch (err) {
       logger.warn(`[TableRoom] audit persist failed for room ${this.roomId}: ${err instanceof Error ? err.message : err}`);
     }
