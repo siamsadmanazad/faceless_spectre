@@ -45,6 +45,10 @@ import {
   requireSeat,
 } from '../validation/intentValidation';
 
+/** Keep only the most recent rejected intents per room so a persistent
+ *  rejecter can't grow the audit array (and its upserts) without bound. */
+const MAX_REJECTED_INTENTS = 500;
+
 export class TableRoom extends Room<RoomStateSchema> {
   maxClients = MAX_PLAYERS;
 
@@ -231,7 +235,11 @@ export class TableRoom extends Room<RoomStateSchema> {
     client.send(ServerMessageType.Error, { type: ServerMessageType.Error, code, message });
     logger.warn(`[TableRoom] intent rejected from ${client.sessionId}: [${code}] ${message}`);
     this.rejectedIntents.push({ timestamp: Date.now(), sessionId: client.sessionId, errorCode: code, message });
-    this.syncAudit();
+    if (this.rejectedIntents.length > MAX_REJECTED_INTENTS) {
+      this.rejectedIntents.splice(0, this.rejectedIntents.length - MAX_REJECTED_INTENTS);
+    }
+    // Not synced to the audit store here — captured on the next deck mutation
+    // and on dispose. Avoids an upsert per rejection, which is the flood path.
   }
 
   /**
