@@ -6,8 +6,11 @@ import {
   ErrorCode,
   IntentType,
   MAX_INTENTS_PER_SECOND,
+  MAX_PRESENCE_PER_SECOND,
+  MAX_SIGNALING_PER_SECOND,
   MAX_PLAYERS,
   MIN_PLAYERS,
+  PRESENCE_FLUSH_MS,
   ServerMessageType,
   ShuffleIntensity,
   ShuffleStyle,
@@ -51,6 +54,17 @@ export class TableRoom extends Room<RoomStateSchema> {
   /** Per-session intent rate-limit counters. Fixed-window, 1-second windows. */
   private intentCounts = new Map<string, { count: number; windowStart: number }>();
 
+  /** Per-session counters for the non-throwing rate caps (presence, signaling). */
+  private presenceCounts = new Map<string, { count: number; windowStart: number }>();
+  private signalingCounts = new Map<string, { count: number; windowStart: number }>();
+
+  /**
+   * Latest presence per player, buffered and flushed on a fixed tick rather than
+   * relayed per-message. Transient — never stored in synced room state.
+   */
+  private latestPresence = new Map<string, { hand: PresenceIntent['hand']; maskId: string }>();
+  private dirtyPresence = new Set<string>();
+
   /** Structured record of every rejected intent for the audit trail. */
   private rejectedIntents: Array<{ timestamp: number; sessionId: string; errorCode: ErrorCode; message: string }> = [];
 
@@ -63,6 +77,9 @@ export class TableRoom extends Room<RoomStateSchema> {
     this.state.maxPlayers = this.maxClients;
     this.initDeck();
     this.registerIntentHandlers();
+    // Aggregate presence: one broadcast per tick carrying every player whose hand
+    // moved since the last flush. Idle rooms send nothing.
+    this.setSimulationInterval(() => this.flushPresence(), PRESENCE_FLUSH_MS);
     logger.info(`[TableRoom] room ${this.roomId} created (max ${this.maxClients} players)`);
   }
 
@@ -86,6 +103,10 @@ export class TableRoom extends Room<RoomStateSchema> {
 
   async onLeave(client: Client, consented: boolean): Promise<void> {
     this.intentCounts.delete(client.sessionId);
+    this.presenceCounts.delete(client.sessionId);
+    this.signalingCounts.delete(client.sessionId);
+    this.latestPresence.delete(client.sessionId);
+    this.dirtyPresence.delete(client.sessionId);
     // Clear ghost hand for this player on all remaining clients
     this.broadcast(ServerMessageType.Presence, {
       type: ServerMessageType.Presence,
@@ -230,6 +251,41 @@ export class TableRoom extends Room<RoomStateSchema> {
     entry.count += 1;
   }
 
+  /**
+   * Non-throwing fixed-window rate gate for high-frequency, low-value messages
+   * (presence, signaling). Returns false when the per-second cap is exceeded so
+   * the caller can drop silently — never rejected/logged, to avoid amplifying a
+   * flood into per-message error traffic.
+   */
+  private withinRate(
+    counts: Map<string, { count: number; windowStart: number }>,
+    sessionId: string,
+    cap: number,
+    now: number = Date.now(),
+  ): boolean {
+    const entry = counts.get(sessionId);
+    if (!entry || now - entry.windowStart >= 1000) {
+      counts.set(sessionId, { count: 1, windowStart: now });
+      return true;
+    }
+    if (entry.count >= cap) return false;
+    entry.count += 1;
+    return true;
+  }
+
+  /** Broadcast every player whose presence changed since the last flush, in one message. */
+  private flushPresence(): void {
+    if (this.dirtyPresence.size === 0) return;
+    const presences: Array<{ playerId: string; hand: PresenceIntent['hand']; maskId: string }> = [];
+    this.dirtyPresence.forEach((id) => {
+      const p = this.latestPresence.get(id);
+      if (p) presences.push({ playerId: id, hand: p.hand, maskId: p.maskId });
+    });
+    this.dirtyPresence.clear();
+    if (presences.length === 0) return;
+    this.broadcast(ServerMessageType.Presence, { type: ServerMessageType.Presence, presences });
+  }
+
   // ── Intent handlers ────────────────────────────────────────────────────────
 
   private registerIntentHandlers(): void {
@@ -292,18 +348,15 @@ export class TableRoom extends Room<RoomStateSchema> {
   }
 
   private handlePresence(client: Client, intent: PresenceIntent): void {
-    // No rate limit — presence has its own client-side 50ms throttle (PRESENCE_THROTTLE_MS).
-    // Relay to all other clients immediately; never stored in room state.
+    // Buffer the latest hand and mark it dirty; flushPresence() broadcasts all
+    // dirty presences once per tick. An independent server-side cap drops floods
+    // silently (the client also self-throttles to PRESENCE_THROTTLE_MS). Never
+    // stored in synced room state.
     try {
       requireSeat(this.state.players, client.sessionId);
-      this.broadcast(
-        ServerMessageType.Presence,
-        {
-          type: ServerMessageType.Presence,
-          presences: [{ playerId: client.sessionId, hand: intent.hand, maskId: intent.maskId }],
-        },
-        { except: client },
-      );
+      if (!this.withinRate(this.presenceCounts, client.sessionId, MAX_PRESENCE_PER_SECOND)) return;
+      this.latestPresence.set(client.sessionId, { hand: intent.hand, maskId: intent.maskId });
+      this.dirtyPresence.add(client.sessionId);
     } catch (err) {
       if (err instanceof IntentError) this.rejectIntent(client, err.code, err.message);
       else throw err;
@@ -576,6 +629,10 @@ export class TableRoom extends Room<RoomStateSchema> {
     messageType: ServerMessageType,
     payload: Record<string, unknown>,
   ): void {
+    // Only seated players may relay, and only within the signaling rate cap.
+    // Both failures drop silently — signaling is peer-to-peer setup noise.
+    if (!this.state.players.has(fromClient.sessionId)) return;
+    if (!this.withinRate(this.signalingCounts, fromClient.sessionId, MAX_SIGNALING_PER_SECOND)) return;
     const target = this.clients.find((c) => c.sessionId === targetId);
     if (!target) return; // peer already left — silently drop
     target.send(messageType, { ...payload, fromId: fromClient.sessionId });

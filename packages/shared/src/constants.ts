@@ -17,6 +17,13 @@ export const MAX_MULTI_DRAW = 13;
 
 export const PRESENCE_THROTTLE_MS = 50;
 export const MAX_INTENTS_PER_SECOND = 20;
+/** Server-side flush cadence for aggregated presence (one broadcast per tick). */
+export const PRESENCE_FLUSH_MS = 50;
+/** Independent server-side cap on inbound presence messages per session/second.
+ *  Above the client's 20/s throttle, with headroom; excess is dropped silently. */
+export const MAX_PRESENCE_PER_SECOND = 30;
+/** Cap on inbound WebRTC signaling messages per session/second (ICE can burst). */
+export const MAX_SIGNALING_PER_SECOND = 60;
 
 export const CARD_STATE_MACHINE: Readonly<Record<string, ReadonlyArray<string>>> = Object.freeze({
   DECK: ['DRAWN'],
