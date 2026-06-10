@@ -88,6 +88,7 @@ export enum IntentType {
   Chat = 'chat',
   Presence = 'presence',
   SetBackfill = 'setBackfill',
+  BackfillVote = 'backfillVote',
   LockTable = 'lockTable',
   Kick = 'kick',
   WebRTCOffer = 'webrtcOffer',

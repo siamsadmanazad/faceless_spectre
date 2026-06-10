@@ -30,6 +30,7 @@ import {
   type ReleaseIntent,
   type PresenceIntent,
   type SetBackfillIntent,
+  type BackfillVoteIntent,
   type LockTableIntent,
   type KickIntent,
   type WebRTCOfferIntent,
@@ -80,6 +81,11 @@ export class TableRoom extends Room<RoomStateSchema> {
 
   /** Connected seatless observers (sessionId). Not stored in synced state. */
   private spectators = new Set<string>();
+
+  /** In-progress backfill vote: sessionId → approve. Cleared when it resolves. */
+  private backfillVoters = new Map<string, boolean>();
+  /** Room-clock timer (auto-cleared on dispose) that auto-resolves a stalled vote. */
+  private backfillVoteTimeout: { clear(): void } | null = null;
 
   onCreate(options?: { maxPlayers?: number; mode?: string }): void {
     const playerCap =
@@ -261,6 +267,12 @@ export class TableRoom extends Room<RoomStateSchema> {
     // A seat freed up — re-evaluate matchmaking visibility (no-op if the host
     // explicitly locked the table).
     this.refreshDiscovery();
+
+    // A departing player's vote no longer counts; re-tally against the new size.
+    if (this.state.backfillVoteActive) {
+      this.backfillVoters.delete(sessionId);
+      this.evaluateBackfillVote();
+    }
 
     this.syncAudit();
   }
@@ -451,6 +463,10 @@ export class TableRoom extends Room<RoomStateSchema> {
 
     this.onMessage(IntentType.SetBackfill, (client, msg: SetBackfillIntent) => {
       this.handleSetBackfill(client, msg.enabled);
+    });
+
+    this.onMessage(IntentType.BackfillVote, (client, msg: BackfillVoteIntent) => {
+      this.handleBackfillVote(client, msg.approve);
     });
 
     this.onMessage(IntentType.LockTable, (client, _msg: LockTableIntent) => {
@@ -776,6 +792,8 @@ export class TableRoom extends Room<RoomStateSchema> {
       if (this.state.mode !== RoomMode.Private) return;
 
       this.state.allowRandomFill = enabled;
+      // A host decision supersedes any pending vote.
+      if (this.state.backfillVoteActive) this.endBackfillVote();
       // refreshDiscovery makes the room Quick-Play matchmade while backfill is on
       // (and a seat is free), but keeps it out of the public browse list.
       this.refreshDiscovery();
@@ -783,6 +801,68 @@ export class TableRoom extends Room<RoomStateSchema> {
       if (err instanceof IntentError) this.rejectIntent(client, err.code, err.message);
       else throw err;
     }
+  }
+
+  /**
+   * A seated player's vote to open empty seats to randoms. The first vote opens
+   * a poll; backfill is enabled when a simple majority of seated players approve.
+   * Only meaningful for private rooms not at a full table.
+   */
+  private handleBackfillVote(client: Client, approve: boolean): void {
+    try {
+      this.checkRateLimit(client);
+      requireSeat(this.state.players, client.sessionId);
+      if (this.state.mode !== RoomMode.Private || this.state.allowRandomFill) return;
+
+      if (!this.state.backfillVoteActive) {
+        this.state.backfillVoteActive = true;
+        this.backfillVoters.clear();
+        // Auto-resolve a stalled vote so it can't linger forever (room clock is
+        // cleared automatically on dispose).
+        this.backfillVoteTimeout = this.clock.setTimeout(() => this.endBackfillVote(), 30_000);
+      }
+
+      this.backfillVoters.set(client.sessionId, approve);
+      this.evaluateBackfillVote();
+    } catch (err) {
+      if (err instanceof IntentError) this.rejectIntent(client, err.code, err.message);
+      else throw err;
+    }
+  }
+
+  /** Recompute the tally and resolve the vote if it has passed or can't pass. */
+  private evaluateBackfillVote(): void {
+    if (!this.state.backfillVoteActive) return;
+    const seated = this.state.players.size;
+    let yes = 0;
+    let no = 0;
+    this.backfillVoters.forEach((approve) => (approve ? yes++ : no++));
+    this.state.backfillVoteYes = yes;
+    this.state.backfillVoteNo = no;
+
+    // Simple majority of seated players approves → enable backfill.
+    if (yes * 2 > seated) {
+      this.state.allowRandomFill = true;
+      this.refreshDiscovery();
+      this.endBackfillVote();
+      return;
+    }
+    // If even every remaining player voting yes can't reach a majority, fail.
+    const undecided = seated - this.backfillVoters.size;
+    if ((yes + undecided) * 2 <= seated) {
+      this.endBackfillVote();
+    }
+  }
+
+  private endBackfillVote(): void {
+    if (this.backfillVoteTimeout) {
+      this.backfillVoteTimeout.clear();
+      this.backfillVoteTimeout = null;
+    }
+    this.backfillVoters.clear();
+    this.state.backfillVoteActive = false;
+    this.state.backfillVoteYes = 0;
+    this.state.backfillVoteNo = 0;
   }
 
   private handleLockTable(client: Client): void {

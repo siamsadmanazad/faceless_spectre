@@ -219,4 +219,24 @@ describe('matchmaking & join model', () => {
     await waitFor(() => specError !== null);
     expect(specError!.code).toBe(ErrorCode.InvalidSeat);
   });
+
+  it('a majority backfill vote opens a private room to randoms', async () => {
+    const roomHost = track(await client().create('table_room', { mode: RoomMode.Private, maxPlayers: 4, displayName: 'Host' }));
+    const roomB = track(await client().joinById(roomHost.id, { displayName: 'B' }));
+    const roomC = track(await client().joinById(roomHost.id, { displayName: 'C' }));
+    await waitFor(() => (roomHost.state as unknown as { players: { size: number } }).players.size === 3);
+
+    type VoteState = { backfillVoteActive: boolean; backfillVoteYes: number; allowRandomFill: boolean };
+    const vs = () => roomHost.state as unknown as VoteState;
+
+    // First vote opens the poll; 1 of 3 is not yet a majority.
+    roomB.send(IntentType.BackfillVote, { approve: true });
+    await waitFor(() => vs().backfillVoteActive && vs().backfillVoteYes === 1);
+    expect(vs().allowRandomFill).toBe(false);
+
+    // Second yes reaches a majority (2 of 3) → backfill enabled, vote closes.
+    roomC.send(IntentType.BackfillVote, { approve: true });
+    await waitFor(() => vs().allowRandomFill === true);
+    expect(vs().backfillVoteActive).toBe(false);
+  });
 });

@@ -86,6 +86,10 @@ export interface RoomStateView {
   allowRandomFill: boolean;
   /** No further joins accepted (full or host-locked). */
   locked: boolean;
+  /** A backfill vote is in progress. */
+  backfillVoteActive: boolean;
+  backfillVoteYes: number;
+  backfillVoteNo: number;
 }
 
 // ── Presence ─────────────────────────────────────────────────────────────────
@@ -181,6 +185,12 @@ export interface SetBackfillIntent extends BaseIntent {
   enabled: boolean;
 }
 
+export interface BackfillVoteIntent extends BaseIntent {
+  type: IntentType.BackfillVote;
+  /** A seated player's vote to open empty seats to randoms. First vote opens the poll. */
+  approve: boolean;
+}
+
 export interface LockTableIntent extends BaseIntent {
   type: IntentType.LockTable;
 }
@@ -223,6 +233,7 @@ export type ClientIntent =
   | ChatIntent
   | PresenceIntent
   | SetBackfillIntent
+  | BackfillVoteIntent
   | LockTableIntent
   | KickIntent
   | WebRTCOfferIntent

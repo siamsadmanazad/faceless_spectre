@@ -15,6 +15,10 @@ export class RoomStateSchema extends Schema {
   @type('boolean') allowRandomFill: boolean = false;
   /** No further joins accepted (full or host-locked). */
   @type('boolean') locked: boolean = false;
+  /** Live tally of an in-progress vote to open empty seats to randoms. */
+  @type('boolean') backfillVoteActive: boolean = false;
+  @type('number') backfillVoteYes: number = 0;
+  @type('number') backfillVoteNo: number = 0;
   @type({ map: PlayerSchema }) players = new MapSchema<PlayerSchema>();
   @type({ map: CardSchema }) cards = new MapSchema<CardSchema>();
 }
