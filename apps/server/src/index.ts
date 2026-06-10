@@ -44,17 +44,59 @@ async function main(): Promise<void> {
 
   app.get('/health', async () => ({ status: 'ok', service: 'faceless-spectre-server' }));
 
+  /** Public, joinable tables only — private and backfill rooms are hidden,
+   *  as are full/locked rooms. Filtered in JS so it's driver-agnostic. */
   app.get('/lobby', async () => {
     const rooms = await matchMaker.query({ name: 'table_room' });
-    return rooms.map((r) => ({
-      roomId: r.roomId,
-      clients: r.clients,
-      maxClients: r.maxClients,
-      locked: r.locked,
-    }));
+    return rooms
+      .filter((r) => r.metadata?.browsable === true && !r.locked && !r.private)
+      .map((r) => ({
+        roomId: r.roomId,
+        clients: r.clients,
+        maxClients: r.maxClients,
+        locked: r.locked,
+        mode: r.metadata?.mode ?? 'public',
+      }));
   });
 
-  /** Join or create a room and return a seat reservation for direct WS connect. */
+  /** Quick Play — drop into any matchmade public/backfill room with a free
+   *  seat, or create a fresh public one. */
+  app.post<{ Body: { displayName?: string; maskId?: string } }>('/rooms/quickplay', async (req, reply) => {
+    try {
+      const { displayName, maskId } = req.body ?? {};
+      const reservation = await matchMaker.joinOrCreate('table_room', { displayName, maskId, mode: 'public' });
+      return reply.code(200).send({ roomId: reservation.room.roomId, seatReservation: reservation });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Quick Play failed';
+      return reply.code(400).send({ error: msg });
+    }
+  });
+
+  /** Create a new table (public or private) and return its code + reservation. */
+  app.post<{ Body: { displayName?: string; maskId?: string; maxPlayers?: number; mode?: string } }>(
+    '/rooms/create',
+    async (req, reply) => {
+      try {
+        const { displayName, maskId, maxPlayers, mode } = req.body ?? {};
+        const reservation = await matchMaker.create('table_room', {
+          displayName,
+          maskId,
+          maxPlayers,
+          mode: mode === 'private' ? 'private' : 'public',
+        });
+        return reply.code(200).send({
+          roomId: reservation.room.roomId,
+          code: reservation.room.roomId,
+          seatReservation: reservation,
+        });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Failed to create room';
+        return reply.code(400).send({ error: msg });
+      }
+    },
+  );
+
+  /** Join an existing room by code/id, or create one as a fallback. */
   app.post<{ Body: { roomId?: string; displayName?: string; maskId?: string; maxPlayers?: number } }>(
     '/rooms/join',
     async (req, reply) => {
