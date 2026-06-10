@@ -216,9 +216,12 @@ export class TableRoom extends Room<RoomStateSchema> {
   private returnCardsToNobody(sessionId: string): void {
     this.state.cards.forEach((card: CardSchema) => {
       if (card.ownerId === sessionId) {
+        const wasRevealed = card.state === CardState.Revealed;
         card.ownerId = '';
-        card.visibility = Visibility.Hidden;
-        card.state = CardState.Placed;
+        // A face-up card stays public when its owner leaves; everything else
+        // returns face-down to the table.
+        card.visibility = wasRevealed ? Visibility.Public : Visibility.Hidden;
+        card.state = wasRevealed ? CardState.Revealed : CardState.Placed;
         card.zoneId = 'table';
       }
     });
@@ -416,6 +419,10 @@ export class TableRoom extends Room<RoomStateSchema> {
       const safeCount = Math.min(count, this.deckTruth.order.length);
       requireNonEmptyDeck(this.deckTruth.order.length);
 
+      // Snapshot the pre-draw order so the audit records the actual hash rather
+      // than reconstructing it from the drawn ids afterward.
+      const beforeHash = hashOrder(this.deckTruth.order);
+
       const drawnIds: string[] = [];
       for (let i = 0; i < safeCount; i++) {
         const cardId = this.deckTruth.order.shift()!;
@@ -440,7 +447,7 @@ export class TableRoom extends Room<RoomStateSchema> {
         actor: client.sessionId,
         action: 'draw',
         cardIds: drawnIds,
-        beforeHash: hashOrder([...drawnIds, ...this.deckTruth.order]),
+        beforeHash,
         afterHash: hashOrder(this.deckTruth.order),
       });
       this.syncAudit();
@@ -510,6 +517,9 @@ export class TableRoom extends Room<RoomStateSchema> {
       requireSeat(this.state.players, client.sessionId);
       requireNonEmptyDeck(this.deckTruth.order.length);
 
+      // Snapshot the pre-deal order for the audit (see handleDraw).
+      const beforeHash = hashOrder(this.deckTruth.order);
+
       const targetPlayers: PlayerSchema[] = [];
       this.state.players.forEach((p: PlayerSchema) => {
         if (seats.length === 0 || seats.includes(p.seat)) {
@@ -543,7 +553,7 @@ export class TableRoom extends Room<RoomStateSchema> {
         actor: client.sessionId,
         action: 'deal',
         cardIds: dealtIds,
-        beforeHash: hashOrder([...dealtIds, ...this.deckTruth.order]),
+        beforeHash,
         afterHash: hashOrder(this.deckTruth.order),
       });
       this.syncAudit();
