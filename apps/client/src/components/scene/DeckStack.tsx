@@ -1,28 +1,16 @@
 'use client';
 
 import { useMemo, useRef, useEffect } from 'react';
-import { InstancedMesh, Object3D, CanvasTexture, Group } from 'three';
+import { InstancedMesh, Object3D, Group } from 'three';
 import { useFrame } from '@react-three/fiber';
 import { AnimationType, ShuffleStyle } from '@faceless-spectre/shared';
 import { useRoomStore } from '../../store/roomStore';
+import { getBackTexture } from './cardTextures';
 
 const CARD_W = 0.7;
 const CARD_H = 1.0;
 const CARD_D = 0.008;
 const MAX_VISIBLE = 52;
-
-function makeBackTexture(): CanvasTexture {
-  const canvas = document.createElement('canvas');
-  canvas.width = 64;
-  canvas.height = 90;
-  const ctx = canvas.getContext('2d')!;
-  ctx.fillStyle = '#1a237e';
-  ctx.fillRect(0, 0, 64, 90);
-  ctx.strokeStyle = '#ffffff88';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(4, 4, 56, 82);
-  return new CanvasTexture(canvas);
-}
 
 export function DeckStack() {
   const deckSize = useRoomStore((s) => s.deckSize);
@@ -32,7 +20,7 @@ export function DeckStack() {
   const groupRef = useRef<Group>(null);
   const meshRef = useRef<InstancedMesh>(null);
   const dummy = useMemo(() => new Object3D(), []);
-  const backTex = useMemo(() => makeBackTexture(), []);
+  const backTex = getBackTexture();
 
   const visibleCount = Math.min(deckSize, MAX_VISIBLE);
 
