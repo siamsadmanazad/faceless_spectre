@@ -253,9 +253,13 @@ Each phase is shippable on its own, verified, and committed. Phases 0–2 are pa
 
 ## 13. Status — what's already built
 
-- ✅ `theme/palette.ts` — fable palette + seat colors (committed).
-- ✅ `theme/matcaps.ts` — procedural cached matcaps (committed).
-- 🟡 `components/scene/SceneLighting.tsx`, `Atmosphere.tsx`, edited `SafeEnvironment.tsx` — scaffolded on disk, pending wire-in to `TableScene` and verification (Phase 1).
-- ⬜ Everything else above.
+**The atmosphere pass is complete** (UI Phases 0–2 + the chrome retune):
 
-> **Resume point:** finish Phase 1 (wire lighting + atmosphere into the scene, drop the HDR, verify FPS), then proceed down Section 9.
+- ✅ **Phase 0 — Foundations:** `theme/palette.ts` (fable palette + seat colors), `theme/matcaps.ts` (procedural cached matcaps), `usePrefersReducedMotion` hook.
+- ✅ **Phase 1 — Atmosphere & lighting:** `SceneLighting` (warm key + cool rim + ContactShadows), `Atmosphere` (gradient backdrop, pulsing hearth, drifting Sparkles motes), procedural warm `SafeEnvironment` replacing the CDN HDR; warm scene background. Wired into `TableScene`, reduced-motion gated.
+- ✅ **Phase 2 — Materials:** rim-matcap ghost hands (fresnel look, no shader) + porcelain masks; warm illustrated card back (indigo + gold filigree) + warm paper faces + arcane held-glow; painterly noise felt + walnut rim.
+- ✅ **Chrome retune** (part of Phase 4): lobby, HUD, shuffle selector, and scene overlays now read warm-glass + palette tokens.
+- ⬜ **Phase 3 — Typography & iconography** (still a gap: default sans-serif + emoji icons). *Recommended next.*
+- ⬜ Phases 5–10 (3D hero lobby, preloader + join cinematic, post/bloom, motion choreography, sound, polish).
+
+> **Resume point:** Phase 3 (add Fraunces/Inter/JetBrains Mono via `next/font`, swap emoji for Lucide) — cheap and disproportionately raises the "professional" read — then Phase 5 (3D hero lobby) and Phase 6 (the join cinematic).
