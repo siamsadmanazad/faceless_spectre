@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getClientId } from '../lib/clientId';
-import { palette, lobbyGradient } from '../theme/palette';
+import { palette, lobbyGradient, font } from '../theme/palette';
+import { Icon } from '../components/ui/Icon';
 
 const SERVER = process.env.NEXT_PUBLIC_SERVER_URL ?? 'http://localhost:2567';
 const NAME_KEY = 'fs_name';
@@ -119,7 +120,9 @@ export default function LobbyPage() {
   return (
     <main style={styles.root}>
       <div style={styles.card}>
-        <h1 style={styles.title}>👻 Faceless Spectre</h1>
+        <h1 style={styles.title}>
+          <Icon name="ghost" size={28} style={{ color: palette.hearth }} /> Faceless Spectre
+        </h1>
         <p style={styles.subtitle}>Server-authoritative 3D card sandbox</p>
 
         <div style={styles.field}>
@@ -136,7 +139,13 @@ export default function LobbyPage() {
 
         {/* Random play */}
         <button style={styles.primaryBtn} onClick={quickPlay} disabled={loading !== ''}>
-          {loading === 'quick' ? 'Finding a game…' : '⚡ Quick Play'}
+          {loading === 'quick' ? (
+            'Finding a game…'
+          ) : (
+            <span style={styles.btnInner}>
+              <Icon name="zap" size={17} /> Quick Play
+            </span>
+          )}
         </button>
         <p style={styles.helpText}>Jump into a table with other players online now.</p>
 
@@ -169,7 +178,7 @@ export default function LobbyPage() {
           <label style={styles.label}>Have a code?</label>
           <div style={styles.codeRow}>
             <input
-              style={{ ...styles.input, fontFamily: 'monospace', letterSpacing: 1 }}
+              style={{ ...styles.input, fontFamily: font.mono, letterSpacing: 1 }}
               value={joinCode}
               onChange={(e) => setJoinCode(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') joinByCode(); }}
@@ -179,7 +188,7 @@ export default function LobbyPage() {
               Join
             </button>
             <button style={styles.joinBtn} onClick={() => joinByCode(true)} disabled={!joinCode.trim()} title="Watch without taking a seat">
-              👁 Watch
+              <span style={styles.btnInner}><Icon name="eye" size={14} /> Watch</span>
             </button>
           </div>
         </div>
@@ -230,8 +239,19 @@ const styles: Record<string, React.CSSProperties> = {
     width: 400,
     color: palette.textPrimary,
   },
-  title: { margin: 0, fontSize: 28, fontWeight: 700, color: palette.textPrimary },
-  subtitle: { color: palette.textDim, marginTop: 6, marginBottom: 24 },
+  title: {
+    margin: 0,
+    fontSize: 32,
+    fontWeight: 600,
+    color: palette.textPrimary,
+    fontFamily: font.display,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    letterSpacing: 0.2,
+  },
+  subtitle: { color: palette.textDim, marginTop: 6, marginBottom: 24, fontSize: 14 },
+  btnInner: { display: 'inline-flex', alignItems: 'center', gap: 8 },
   field: { marginBottom: 16 },
   label: { display: 'block', fontSize: 13, color: palette.textDim, marginBottom: 6 },
   input: {
@@ -291,7 +311,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '10px 0',
     borderBottom: '1px solid rgba(247,239,225,0.08)',
   },
-  roomId: { flex: 1, fontFamily: 'monospace', fontSize: 13, color: palette.textDim },
+  roomId: { flex: 1, fontFamily: font.mono, fontSize: 13, color: palette.textDim },
   roomPlayers: { fontSize: 12, color: palette.textFaint },
   joinBtn: {
     padding: '10px 16px',

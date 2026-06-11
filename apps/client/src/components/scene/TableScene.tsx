@@ -15,7 +15,8 @@ import { SafeEnvironment } from './SafeEnvironment';
 import { SceneLighting } from './SceneLighting';
 import { Atmosphere } from './Atmosphere';
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion';
-import { palette } from '../../theme/palette';
+import { palette, font } from '../../theme/palette';
+import { Icon } from '../ui/Icon';
 import { useColyseus } from '../../hooks/useColyseus';
 import { useVoice } from '../../hooks/useVoice';
 import { usePageVisible } from '../../hooks/usePageVisible';
@@ -158,7 +159,7 @@ export function TableScene({ roomId, displayName, spectate = false }: TableScene
 
       {!visible && (
         <div style={styles.paused}>
-          <div style={styles.pausedIcon}>⏸</div>
+          <Icon name="pause" size={44} style={{ color: palette.hearth }} />
           <div style={styles.pausedTitle}>Paused</div>
           <div style={styles.pausedSubtitle}>Tab inactive — switch back to resume</div>
         </div>
@@ -213,8 +214,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: 'sans-serif',
     backdropFilter: 'blur(2px)',
   },
-  pausedIcon: { fontSize: 48, lineHeight: 1 },
-  pausedTitle: { fontSize: 24, fontWeight: 600 },
+  pausedTitle: { fontSize: 24, fontWeight: 600, fontFamily: font.display, marginTop: 8 },
   pausedSubtitle: { fontSize: 14, opacity: 0.7 },
 };
 

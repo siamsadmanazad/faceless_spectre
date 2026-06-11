@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { RoomMode } from '@faceless-spectre/shared';
 import { useRoomStore } from '../../store/roomStore';
-import { palette } from '../../theme/palette';
+import { palette, font } from '../../theme/palette';
+import { Icon } from '../ui/Icon';
 
 interface HUDProps {
   connected: boolean;
@@ -80,16 +81,24 @@ export function HUD({
         <span style={styles.stat}>Deck: {deckSize}</span>
         {!spectate && <span style={styles.stat}>Hand: {handCount}</span>}
         <span style={styles.stat}>Players: {players.size}</span>
-        {spectatorCount > 0 && <span style={styles.stat}>👁 {spectatorCount}</span>}
+        {spectatorCount > 0 && (
+          <span style={{ ...styles.stat, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <Icon name="eye" size={12} /> {spectatorCount}
+          </span>
+        )}
       </div>
 
       {/* Room / invite panel */}
       <div style={styles.roomPanel}>
         <div style={styles.roomCodeRow}>
-          <span style={styles.roomBadge}>{isPrivate ? '🔒 Private' : '🌐 Public'}</span>
+          <span style={styles.roomBadge}>
+            <Icon name={isPrivate ? 'lock' : 'globe'} size={12} /> {isPrivate ? 'Private' : 'Public'}
+          </span>
           {roomId && <span style={styles.roomCode}>{roomId}</span>}
           <button style={styles.copyBtn} onClick={copyInvite}>
-            {copied ? 'Copied ✓' : 'Copy link'}
+            <span style={styles.iconLabel}>
+              <Icon name={copied ? 'check' : 'copy'} size={12} /> {copied ? 'Copied' : 'Copy link'}
+            </span>
           </button>
         </div>
 
@@ -140,7 +149,9 @@ export function HUD({
       {/* Action buttons (players only) */}
       {spectate ? (
         <div style={styles.controls}>
-          <span style={styles.spectatingBadge}>👁 Spectating — you can watch but not act</span>
+          <span style={styles.spectatingBadge}>
+            <span style={styles.iconLabel}><Icon name="eye" size={15} /> Spectating — you can watch but not act</span>
+          </span>
         </div>
       ) : (
         <div style={styles.controls}>
@@ -167,19 +178,26 @@ export function HUD({
       <div style={styles.playerList}>
         {Array.from(players.values()).map((p) => (
           <div key={p.id} style={styles.playerEntry}>
-            <span style={{ color: p.id === localPlayerId ? '#ffd700' : '#ccc' }}>
+            <span
+              style={{
+                color: p.id === localPlayerId ? palette.hearth : palette.textDim,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
               {p.displayName}
-              {p.id === hostId ? ' 👑' : ''}
+              {p.id === hostId && <Icon name="crown" size={12} style={{ color: palette.hearth }} />}
               {p.id === localPlayerId ? ' (you)' : ''}
             </span>
-            <span style={{ color: '#aaa', marginLeft: 8 }}>Hand: {p.handSize}</span>
+            <span style={{ color: palette.textFaint, marginLeft: 8 }}>Hand: {p.handSize}</span>
             {p.id !== localPlayerId && (
               <button
                 style={styles.muteBtn}
                 onClick={() => togglePeerMute(p.id)}
                 title={mutedPeers.has(p.id) ? 'Unmute this player' : 'Mute this player'}
               >
-                {mutedPeers.has(p.id) ? '🔇' : '🔊'}
+                <Icon name={mutedPeers.has(p.id) ? 'volume-off' : 'volume'} size={13} />
               </button>
             )}
             {isHost && p.id !== localPlayerId && (
@@ -205,7 +223,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     gap: 16,
     color: palette.textPrimary,
-    fontFamily: 'monospace',
+    fontFamily: font.mono,
     fontSize: 13,
     background: palette.glass,
     border: `1px solid ${palette.glassBorder}`,
@@ -216,6 +234,7 @@ const styles: Record<string, React.CSSProperties> = {
     userSelect: 'none',
   },
   stat: { color: palette.textDim },
+  iconLabel: { display: 'inline-flex', alignItems: 'center', gap: 6 },
   roomPanel: {
     position: 'absolute',
     top: 52,
@@ -231,8 +250,8 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: 'sans-serif',
   },
   roomCodeRow: { display: 'flex', alignItems: 'center', gap: 8 },
-  roomBadge: { fontSize: 12, color: palette.arcane },
-  roomCode: { fontFamily: 'monospace', fontSize: 13, color: palette.textPrimary, letterSpacing: 1 },
+  roomBadge: { fontSize: 12, color: palette.arcane, display: 'inline-flex', alignItems: 'center', gap: 4 },
+  roomCode: { fontFamily: font.mono, fontSize: 13, color: palette.textPrimary, letterSpacing: 1 },
   copyBtn: {
     padding: '4px 10px',
     fontSize: 12,
@@ -302,19 +321,22 @@ const styles: Record<string, React.CSSProperties> = {
     backdropFilter: 'blur(6px)',
     padding: '8px 14px',
     borderRadius: 8,
-    fontFamily: 'monospace',
+    fontFamily: font.mono,
     fontSize: 12,
   },
   playerEntry: { display: 'flex', alignItems: 'center' },
   muteBtn: {
     marginLeft: 8,
-    padding: '2px 6px',
+    padding: '3px 6px',
     fontSize: 11,
     borderRadius: 4,
     border: `1px solid ${palette.glassBorder}`,
     background: 'rgba(247,239,225,0.06)',
+    color: palette.textDim,
     cursor: 'pointer',
     lineHeight: 1,
+    display: 'inline-flex',
+    alignItems: 'center',
   },
   kickBtn: {
     marginLeft: 10,

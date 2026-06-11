@@ -59,3 +59,14 @@ export const SEAT_COLORS: readonly string[] = [
 
 /** Lobby background gradient (warm dusk). */
 export const lobbyGradient = `linear-gradient(135deg, ${palette.bgDeep}, ${palette.bgDusk}, ${palette.bgEmber})`;
+
+/**
+ * Font-family tokens. Backed by the CSS variables set in layout.tsx via
+ * next/font, with safe fallbacks. `display` is the fable serif (Fraunces),
+ * `ui` the humanist sans (Inter), `mono` for codes/counts (JetBrains Mono).
+ */
+export const font = {
+  display: 'var(--font-display), Georgia, serif',
+  ui: 'var(--font-ui), system-ui, sans-serif',
+  mono: 'var(--font-mono), ui-monospace, monospace',
+} as const;
