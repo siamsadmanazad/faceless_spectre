@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { ShuffleStyle, ShuffleIntensity } from '@faceless-spectre/shared';
+import { palette } from '../../theme/palette';
 
 interface ShuffleSelectorProps {
   open: boolean;
@@ -95,27 +96,28 @@ const styles: Record<string, React.CSSProperties> = {
   },
   panel: {
     width: 360,
-    background: 'rgba(10,10,20,0.93)',
-    border: '1px solid rgba(255,255,255,0.15)',
+    background: 'rgba(26,20,16,0.95)',
+    border: `1px solid ${palette.glassBorder}`,
     borderRadius: 12,
     padding: '24px 28px',
     fontFamily: 'sans-serif',
-    color: '#fff',
-    boxShadow: '0 8px 40px rgba(0,0,0,0.7)',
+    color: palette.textPrimary,
+    boxShadow: '0 8px 40px rgba(0,0,0,0.6)',
+    backdropFilter: 'blur(8px)',
   },
   title: {
     margin: '0 0 18px',
     fontSize: 16,
     fontWeight: 600,
     letterSpacing: 0.3,
-    color: '#eee',
+    color: palette.textPrimary,
   },
   sectionLabel: {
     margin: '0 0 8px',
     fontSize: 11,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
-    color: 'rgba(255,255,255,0.45)',
+    color: palette.textDim,
   },
   row: {
     display: 'flex',
@@ -126,17 +128,17 @@ const styles: Record<string, React.CSSProperties> = {
   btn: {
     padding: '7px 14px',
     fontSize: 13,
-    background: 'rgba(255,255,255,0.07)',
-    color: '#ccc',
-    border: '1px solid rgba(255,255,255,0.12)',
+    background: 'rgba(247,239,225,0.05)',
+    color: palette.textDim,
+    border: '1px solid rgba(247,239,225,0.12)',
     borderRadius: 6,
     cursor: 'pointer',
     transition: 'background 0.12s',
   } as React.CSSProperties,
   btnActive: {
-    background: 'rgba(255,255,255,0.22)',
-    color: '#fff',
-    border: '1px solid rgba(255,255,255,0.4)',
+    background: palette.hearth,
+    color: palette.bgDeep,
+    border: `1px solid ${palette.hearthSoft}`,
   } as React.CSSProperties,
   actions: {
     display: 'flex',
@@ -148,9 +150,9 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '10px 22px',
     fontSize: 14,
     fontWeight: 600,
-    background: 'rgba(100,160,255,0.25)',
-    color: '#fff',
-    border: '1px solid rgba(100,160,255,0.5)',
+    background: palette.hearth,
+    color: palette.bgDeep,
+    border: `1px solid ${palette.hearthSoft}`,
     borderRadius: 8,
     cursor: 'pointer',
   } as React.CSSProperties,
@@ -158,14 +160,14 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '10px 16px',
     fontSize: 13,
     background: 'transparent',
-    color: 'rgba(255,255,255,0.45)',
+    color: palette.textDim,
     border: 'none',
     cursor: 'pointer',
   } as React.CSSProperties,
   kbd: {
     fontFamily: 'monospace',
     fontSize: 11,
-    background: 'rgba(255,255,255,0.1)',
+    background: 'rgba(247,239,225,0.1)',
     padding: '1px 5px',
     borderRadius: 3,
     marginLeft: 6,
