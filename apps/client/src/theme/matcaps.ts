@@ -52,17 +52,38 @@ function build(key: string, { stops, bg }: MatcapStops): CanvasTexture {
   return tex;
 }
 
-/** Soft pearlescent matcap for ghost hands — tinted toward the seat colour. */
+/**
+ * Ghostly **rim** matcap for the hands — dark core, bright seat-tinted edge.
+ * Because the disc edge maps to glancing (silhouette) normals, a dark-center /
+ * bright-rim matcap reads as a fresnel rim-glow: luminous at the edges, faint in
+ * the middle. The "ghost" look, with no custom shader. Centred (not key-offset).
+ */
 export function getHandMatcap(seatColor: string): CanvasTexture {
-  return build(`hand:${seatColor}`, {
-    bg: '#0d1418',
-    stops: [
-      [0.0, '#ffffff'],
-      [0.35, seatColor],
-      [0.75, mix(seatColor, '#0d1418', 0.55)],
-      [1.0, '#0a1014'],
-    ],
-  });
+  const key = `hand:${seatColor}`;
+  const existing = cache.get(key);
+  if (existing) return existing;
+
+  const s = 256;
+  const c = document.createElement('canvas');
+  c.width = s;
+  c.height = s;
+  const ctx = c.getContext('2d')!;
+  ctx.fillStyle = '#0a1014';
+  ctx.fillRect(0, 0, s, s);
+
+  const g = ctx.createRadialGradient(s / 2, s / 2, s * 0.08, s / 2, s / 2, s / 2);
+  g.addColorStop(0.0, mix(seatColor, '#0a1014', 0.78)); // faint dark core
+  g.addColorStop(0.55, mix(seatColor, '#0a1014', 0.35));
+  g.addColorStop(0.82, seatColor); // luminous rim
+  g.addColorStop(1.0, mix(seatColor, '#ffffff', 0.55)); // hot edge
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(s / 2, s / 2, s / 2, 0, Math.PI * 2);
+  ctx.fill();
+
+  const tex = new CanvasTexture(c);
+  cache.set(key, tex);
+  return tex;
 }
 
 /** Warm porcelain matcap for the floating masks. */

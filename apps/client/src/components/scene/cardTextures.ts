@@ -1,6 +1,7 @@
 'use client';
 
 import { CanvasTexture } from 'three';
+import { palette } from '../../theme/palette';
 
 /**
  * Shared card textures.
@@ -23,25 +24,37 @@ export function getBackTexture(): CanvasTexture {
   canvas.width = 128;
   canvas.height = 180;
   const ctx = canvas.getContext('2d')!;
-  ctx.fillStyle = '#1a237e';
+
+  // Warm muted-indigo field with a soft radial vignette toward the center.
+  ctx.fillStyle = palette.cardBack;
   ctx.fillRect(0, 0, 128, 180);
-  ctx.strokeStyle = '#ffffff33';
-  ctx.lineWidth = 2;
-  for (let i = 8; i < 128; i += 16) {
+  const vg = ctx.createRadialGradient(64, 90, 8, 64, 90, 110);
+  vg.addColorStop(0, 'rgba(240,177,90,0.10)'); // faint hearth bloom
+  vg.addColorStop(1, 'rgba(0,0,0,0.25)');
+  ctx.fillStyle = vg;
+  ctx.fillRect(0, 0, 128, 180);
+
+  // Gold diamond lattice (illustrated filigree).
+  ctx.strokeStyle = 'rgba(240,177,90,0.28)';
+  ctx.lineWidth = 1.5;
+  const step = 22;
+  for (let x = -180; x < 128 + 180; x += step) {
     ctx.beginPath();
-    ctx.moveTo(i, 0);
-    ctx.lineTo(i, 180);
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x + 180, 180);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x + 180, 0);
+    ctx.lineTo(x, 180);
     ctx.stroke();
   }
-  for (let i = 8; i < 180; i += 16) {
-    ctx.beginPath();
-    ctx.moveTo(0, i);
-    ctx.lineTo(128, i);
-    ctx.stroke();
-  }
-  ctx.strokeStyle = '#ffffff88';
-  ctx.lineWidth = 4;
+
+  // Gold double border.
+  ctx.strokeStyle = palette.cardBackInk;
+  ctx.lineWidth = 3;
   ctx.strokeRect(8, 8, 112, 164);
+  ctx.lineWidth = 1;
+  ctx.strokeRect(13, 13, 102, 154);
 
   backTexture = new CanvasTexture(canvas);
   return backTexture;
@@ -58,14 +71,14 @@ export function getFaceTexture(rank: string, suit: string): CanvasTexture {
   canvas.height = 180;
   const ctx = canvas.getContext('2d')!;
 
-  ctx.fillStyle = '#fff8f0';
+  ctx.fillStyle = palette.paper;
   ctx.fillRect(0, 0, 128, 180);
-  ctx.strokeStyle = '#cccccc';
+  ctx.strokeStyle = palette.paperEdge;
   ctx.lineWidth = 2;
   ctx.strokeRect(4, 4, 120, 172);
 
   const isRed = suit === 'H' || suit === 'D';
-  const color = isRed ? '#cc2222' : '#111111';
+  const color = isRed ? palette.suitRed : palette.suitBlack;
   const suitSymbol = { H: '♥', D: '♦', S: '♠', C: '♣' }[suit] ?? suit;
 
   ctx.fillStyle = color;

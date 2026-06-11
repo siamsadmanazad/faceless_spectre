@@ -4,10 +4,12 @@ import { useMemo, useRef } from 'react';
 import { Mesh, Color } from 'three';
 import { useFrame } from '@react-three/fiber';
 import { getBackTexture, getFaceTexture } from './cardTextures';
+import { palette } from '../../theme/palette';
 
 const CARD_W = 0.7;
 const CARD_H = 1.0;
 const CARD_D = 0.008;
+const CARD_EDGE = palette.paperEdge;
 
 interface CardMeshProps {
   rank?: string;
@@ -21,7 +23,7 @@ interface CardMeshProps {
   faceUp?: boolean;
 }
 
-const SELECTED_EMISSIVE = new Color('#4488ff');
+const SELECTED_EMISSIVE = new Color(palette.arcane);
 const NEUTRAL_EMISSIVE = new Color('#000000');
 
 export function CardMesh({
@@ -97,10 +99,10 @@ export function CardMesh({
   // Faces: +X, -X, +Y, -Y, +Z (front/face), -Z (back)
   const materials = useMemo(() => {
     return [
-      { color: '#eeeeee' as const }, // +X edge
-      { color: '#eeeeee' as const }, // -X edge
-      { color: '#eeeeee' as const }, // +Y top
-      { color: '#eeeeee' as const }, // -Y bottom
+      { color: CARD_EDGE }, // +X edge
+      { color: CARD_EDGE }, // -X edge
+      { color: CARD_EDGE }, // +Y top
+      { color: CARD_EDGE }, // -Y bottom
       { map: faceUp && hasFace ? faceTex : backTex }, // +Z face
       { map: backTex }, // -Z back
     ];

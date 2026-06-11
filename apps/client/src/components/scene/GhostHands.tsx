@@ -2,16 +2,10 @@
 
 import { useRoomStore } from '../../store/roomStore';
 import { GhostHand } from './GhostHand';
+import { SEAT_COLORS } from '../../theme/palette';
 
-// One distinct color per seat so players are identifiable at a glance
-export const SEAT_COLORS = [
-  '#4488ff', // seat 0 — blue
-  '#ff4488', // seat 1 — pink
-  '#44ff88', // seat 2 — green
-  '#ff8844', // seat 3 — orange
-  '#aa44ff', // seat 4 — purple
-  '#ffee44', // seat 5 — yellow
-] as const;
+// Re-exported for any consumer that imported it from here historically.
+export { SEAT_COLORS };
 
 export function GhostHands() {
   const localPlayerId = useRoomStore((s) => s.localPlayerId);

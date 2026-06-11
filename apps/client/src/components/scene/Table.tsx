@@ -3,6 +3,28 @@
 import { useMemo } from 'react';
 import * as THREE from 'three';
 import { useRoomStore } from '../../store/roomStore';
+import { palette } from '../../theme/palette';
+
+/** Tiling micro-noise for a painterly felt surface (varies roughness subtly). */
+function makeFeltGrain(): THREE.CanvasTexture {
+  const s = 128;
+  const c = document.createElement('canvas');
+  c.width = s;
+  c.height = s;
+  const ctx = c.getContext('2d')!;
+  ctx.fillStyle = '#808080';
+  ctx.fillRect(0, 0, s, s);
+  const img = ctx.getImageData(0, 0, s, s);
+  for (let i = 0; i < img.data.length; i += 4) {
+    const n = 128 + (Math.random() - 0.5) * 90;
+    img.data[i] = img.data[i + 1] = img.data[i + 2] = n;
+  }
+  ctx.putImageData(img, 0, 0);
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(6, 6);
+  return tex;
+}
 
 // ── Shape generators ──────────────────────────────────────────────────────────
 
@@ -83,25 +105,26 @@ export function Table() {
 
   // ShapeGeometry lives in useMemo so it isn't recreated every frame
   const felt = useMemo(() => feltShape(maxPlayers), [maxPlayers]);
+  const grain = useMemo(() => makeFeltGrain(), []);
 
   return (
     <group>
-      {/* Green felt surface */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+      {/* Painterly warm felt — micro-noise varies roughness; lighting paints the
+          warm hearth pool. Grounding comes from <ContactShadows> in SceneLighting. */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]}>
         <shapeGeometry args={[felt, 32]} />
-        <meshStandardMaterial color="#2d5a27" roughness={0.85} metalness={0.05} />
+        <meshStandardMaterial
+          color={palette.feltDeep}
+          roughness={0.92}
+          metalness={0.04}
+          roughnessMap={grain}
+        />
       </mesh>
 
-      {/* Wood rim — same shape, 7 % larger, 2 cm below the felt */}
+      {/* Warm walnut rim — same shape, 7 % larger, 2 cm below the felt */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} scale={[1.07, 1.07, 1]}>
         <shapeGeometry args={[felt, 32]} />
-        <meshStandardMaterial color="#5c3d1e" roughness={0.7} />
-      </mesh>
-
-      {/* Shadow catcher — stays a large plane regardless of table shape */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]} receiveShadow>
-        <planeGeometry args={[14, 14]} />
-        <shadowMaterial opacity={0.3} />
+        <meshStandardMaterial color={palette.wood} roughness={0.6} metalness={0.15} />
       </mesh>
     </group>
   );
