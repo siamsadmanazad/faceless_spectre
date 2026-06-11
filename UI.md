@@ -252,15 +252,26 @@ Each phase is shippable on its own, verified, and committed. Phases 0–2 are pa
 
 ---
 
-## 13. Status — what's already built
+## 13. Status — what's been built
 
-**The atmosphere pass is complete** (UI Phases 0–2 + the chrome retune):
+**All phases implemented.** (Awaiting visual eyeball + fine-tuning.)
 
-- ✅ **Phase 0 — Foundations:** `theme/palette.ts` (fable palette + seat colors), `theme/matcaps.ts` (procedural cached matcaps), `usePrefersReducedMotion` hook.
-- ✅ **Phase 1 — Atmosphere & lighting:** `SceneLighting` (warm key + cool rim + ContactShadows), `Atmosphere` (gradient backdrop, pulsing hearth, drifting Sparkles motes), procedural warm `SafeEnvironment` replacing the CDN HDR; warm scene background. Wired into `TableScene`, reduced-motion gated.
-- ✅ **Phase 2 — Materials:** rim-matcap ghost hands (fresnel look, no shader) + porcelain masks; warm illustrated card back (indigo + gold filigree) + warm paper faces + arcane held-glow; painterly noise felt + walnut rim.
-- ✅ **Chrome retune** (part of Phase 4): lobby, HUD, shuffle selector, and scene overlays now read warm-glass + palette tokens.
-- ⬜ **Phase 3 — Typography & iconography** (still a gap: default sans-serif + emoji icons). *Recommended next.*
-- ⬜ Phases 5–10 (3D hero lobby, preloader + join cinematic, post/bloom, motion choreography, sound, polish).
+- ✅ **Phase 0 — Foundations:** `theme/palette.ts`, `theme/matcaps.ts`, `usePrefersReducedMotion`, `lib/motion.ts`.
+- ✅ **Phase 1 — Atmosphere & lighting:** `SceneLighting`, `Atmosphere` (gradient backdrop, pulsing hearth, drifting motes), procedural warm `SafeEnvironment` (CDN HDR dropped).
+- ✅ **Phase 2 — Materials:** rim-matcap ghost hands + porcelain masks; illustrated card back + warm faces + arcane held-glow; painterly felt + walnut rim.
+- ✅ **Phase 3 — Typography & icons:** Fraunces/Inter/JetBrains Mono via `next/font`; local inline-SVG icon set (`components/ui/Icon.tsx`) — no dependency, all emoji replaced.
+- ✅ **Phase 4 — Chrome retune:** lobby, HUD, shuffle selector, scene overlays on warm-glass palette tokens.
+- ✅ **Phase 5 — 3D hero lobby:** `LobbyScene` — floating masked ghost-hand motif + drifting cards behind the glass form, idle cursor parallax.
+- ✅ **Phase 6 — Join cinematic:** `JoinIntro` camera descent + connection veil + title (hand-rolled, no GSAP); skippable, reduced-motion aware, masks the connect.
+- 🟡 **Phase 7 — Glow:** no-dep additive `Halo` sprites on hands/masks/held cards. *True post-process bloom (`@react-three/postprocessing`) deferred — registry was unreachable; drop-in later.*
+- ✅ **Phase 8 — Motion choreography:** card travel arc (draw/deal) + reveal/deal-in flip flourish with scale pop, in `CardMesh`.
+- ✅ **Phase 9 — Sound:** native Web Audio synth engine (`lib/audio.ts`) — draw/deal/shuffle/reveal/place SFX wired to server animation commands, HUD toggle, autoplay-gated.
+- ✅ **Phase 10 — Polish & fallbacks:** no-WebGL fallback, DPR cap, reduced-motion sweep, responsive lobby.
+- ➕ **Camera auto-recenter** (`CameraHome`): free orbit, then smooth glide back to the seated home view.
 
-> **Resume point:** Phase 3 (add Fraunces/Inter/JetBrains Mono via `next/font`, swap emoji for Lucide) — cheap and disproportionately raises the "professional" read — then Phase 5 (3D hero lobby) and Phase 6 (the join cinematic).
+> **Resume point:** eyeball the running app, fine-tune values (palette, light intensities, motion timings, SFX levels), then optionally add real post-process bloom once the npm registry is reachable.
+
+### Deferred / future
+- **True selective bloom** via `@react-three/postprocessing` (Phase 7 upgrade).
+- **Deal stagger** (per-card sequenced arrival) and a literal front/back reveal flip.
+- **Ambient hearth sound bed**; sourced SFX if richer than the synth set is wanted.
