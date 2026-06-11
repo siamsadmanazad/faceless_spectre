@@ -12,6 +12,10 @@ import { GhostHands } from './GhostHands';
 import { OpponentHands } from './OpponentHands';
 import { LocalPresenceSender } from './LocalPresenceSender';
 import { SafeEnvironment } from './SafeEnvironment';
+import { SceneLighting } from './SceneLighting';
+import { Atmosphere } from './Atmosphere';
+import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion';
+import { palette } from '../../theme/palette';
 import { useColyseus } from '../../hooks/useColyseus';
 import { useVoice } from '../../hooks/useVoice';
 import { usePageVisible } from '../../hooks/usePageVisible';
@@ -29,6 +33,7 @@ export function TableScene({ roomId, displayName, spectate = false }: TableScene
   // Whether the game tab is the active foreground tab. While inactive the whole
   // game pauses — render loop, presence, and voice — so it consumes nothing.
   const visible = usePageVisible();
+  const reducedMotion = usePrefersReducedMotion();
 
   const { connected, error, draw, shuffle, deal, grab, release, sendPresence, setBackfill, backfillVote, lockTable, kick, sendIntent, roomRef } = useColyseus(roomId, displayName, spectate);
   const { isMuted, toggleMute, audioEnabled } = useVoice({ roomRef, sendIntent, active: visible });
@@ -91,13 +96,13 @@ export function TableScene({ roomId, displayName, spectate = false }: TableScene
         camera={{ position: [0, 5, 7], fov: 50, near: 0.1, far: 100 }}
         style={{ width: '100%', height: '100%' }}
       >
-        <color attach="background" args={['#1a1a2e']} />
+        <color attach="background" args={[palette.bgDeep]} />
 
-        <ambientLight intensity={0.4} />
-        <pointLight position={[0, 6, 0]} intensity={1.2} castShadow />
-        <pointLight position={[-4, 3, 3]} intensity={0.3} color="#ffe0a0" />
+        {/* Warm hearth light rig + warm atmosphere (gradient backdrop, glow, motes). */}
+        <SceneLighting />
+        <Atmosphere animate={!reducedMotion} />
 
-        {/* Optional IBL — isolated so a slow/unreachable HDR CDN never blanks the table. */}
+        {/* Procedural warm IBL — isolated so it can never blank the table. */}
         <SafeEnvironment />
 
         <Suspense fallback={null}>
