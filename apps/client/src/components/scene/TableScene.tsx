@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Stats } from '@react-three/drei';
 import { ShuffleStyle, ShuffleIntensity } from '@faceless-spectre/shared';
@@ -14,6 +14,7 @@ import { LocalPresenceSender } from './LocalPresenceSender';
 import { SafeEnvironment } from './SafeEnvironment';
 import { SceneLighting } from './SceneLighting';
 import { Atmosphere } from './Atmosphere';
+import { CameraHome, type OrbitControlsLike } from './CameraHome';
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion';
 import { palette, font } from '../../theme/palette';
 import { Icon } from '../ui/Icon';
@@ -35,6 +36,7 @@ export function TableScene({ roomId, displayName, spectate = false }: TableScene
   // game pauses — render loop, presence, and voice — so it consumes nothing.
   const visible = usePageVisible();
   const reducedMotion = usePrefersReducedMotion();
+  const controlsRef = useRef<React.ComponentRef<typeof OrbitControls>>(null);
 
   const { connected, error, draw, shuffle, deal, grab, release, sendPresence, setBackfill, backfillVote, lockTable, kick, sendIntent, roomRef } = useColyseus(roomId, displayName, spectate);
   const { isMuted, toggleMute, audioEnabled } = useVoice({ roomRef, sendIntent, active: visible });
@@ -136,10 +138,17 @@ export function TableScene({ roomId, displayName, spectate = false }: TableScene
         </Suspense>
 
         <OrbitControls
+          ref={controlsRef}
           enablePan={false}
           minDistance={3}
           maxDistance={12}
           maxPolarAngle={Math.PI / 2.2}
+        />
+        {/* Free orbit, then smoothly glide back to the seated home view.
+            OrbitControls is a superset of OrbitControlsLike — narrow the ref. */}
+        <CameraHome
+          controlsRef={controlsRef as React.RefObject<OrbitControlsLike | null>}
+          animate={!reducedMotion}
         />
 
         {process.env.NODE_ENV === 'development' && <Stats />}
