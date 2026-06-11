@@ -185,8 +185,9 @@ Each phase is shippable on its own, verified, and committed. Phases 0–2 are pa
 **Phase 6 — Preloader + Join intro cinematic**
 - Branded loader (`useProgress`); the join cinematic (Section 8), starting with the simpler v1 and upgrading to the camera move. Gate completion on connection+sync; add skip + reduced-motion paths.
 
-**Phase 7 — Glow & post (decision-gated)**
-- Add `@react-three/postprocessing`; selective bloom on emissives + subtle vignette/grain. Profile; keep within budget.
+**Phase 7 — Glow & post** 🟡 *(no-dep version shipped; bloom deferred)*
+- Shipped a no-dependency glow: additive `Halo` sprites on the ghost hands, masks, and held cards (`components/scene/Halo.tsx` + `getGlowTexture`). Reads as bloom at one quad each.
+- **Deferred (registry was unreachable):** `@react-three/postprocessing` for true selective bloom on emissives + vignette/grain. Drop-in upgrade once `pnpm add @react-three/postprocessing` succeeds; the halos can stay or be removed.
 
 **Phase 8 — Motion choreography**
 - Re-author card animations (shuffle/draw/deal/reveal/collect) with springs + stagger + anticipation/settle. The biggest "game feel" leap.
