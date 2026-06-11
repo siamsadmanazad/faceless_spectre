@@ -37,6 +37,19 @@ export interface ActiveAnimation {
   durationMs: number;
 }
 
+export interface ChatMessageView {
+  /** Local-only key for React lists; not from the server. */
+  id: string;
+  fromId: string;
+  fromName: string;
+  text: string;
+  ts: number;
+}
+
+/** Keep only the most recent chat lines in memory. */
+const CHAT_LOG_CAP = 50;
+let chatSeq = 0;
+
 export interface DeckAnimation {
   animation: AnimationType;
   style: ShuffleStyle;
@@ -66,6 +79,8 @@ interface RoomState {
   selectedCardId: string | null;
   activeAnimations: Map<string, ActiveAnimation>;
   presences: Map<string, PresencePayload>;
+  /** Recent chat lines (oldest first), capped to CHAT_LOG_CAP. */
+  chatLog: ChatMessageView[];
 
   setRoomId: (id: string) => void;
   setLocalPlayerId: (id: string) => void;
@@ -103,6 +118,7 @@ interface RoomState {
   clearDeckAnimation: () => void;
   upsertPresence: (payload: PresencePayload) => void;
   removePresence: (playerId: string) => void;
+  addChatMessage: (msg: { fromId: string; fromName: string; text: string; ts: number }) => void;
   isMuted: boolean;
   audioEnabled: boolean;
   setMuted: (v: boolean) => void;
@@ -136,6 +152,7 @@ export const useRoomStore = create<RoomState>((set) => ({
   activeAnimations: new Map(),
   deckAnimation: null,
   presences: new Map(),
+  chatLog: [],
   isMuted: false,
   audioEnabled: false,
   mutedPeers: new Set(),
@@ -231,6 +248,13 @@ export const useRoomStore = create<RoomState>((set) => ({
       return { presences: next };
     }),
 
+  addChatMessage: (msg) =>
+    set((s) => {
+      const entry: ChatMessageView = { id: `c${chatSeq++}`, ...msg };
+      const next = [...s.chatLog, entry];
+      return { chatLog: next.length > CHAT_LOG_CAP ? next.slice(next.length - CHAT_LOG_CAP) : next };
+    }),
+
   upsertCard: (card) =>
     set((s) => {
       const next = new Map(s.cards);
@@ -280,6 +304,7 @@ export const useRoomStore = create<RoomState>((set) => ({
       activeAnimations: new Map(),
       deckAnimation: null,
       presences: new Map(),
+      chatLog: [],
       isMuted: false,
       audioEnabled: false,
       mutedPeers: new Set(),

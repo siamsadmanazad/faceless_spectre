@@ -20,7 +20,11 @@ export type IconName =
   | 'x'
   | 'ghost'
   | 'music'
-  | 'music-off';
+  | 'music-off'
+  | 'message'
+  | 'send'
+  | 'smile'
+  | 'chevron-down';
 
 const PATHS: Record<IconName, React.ReactNode> = {
   eye: (
@@ -102,6 +106,24 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <line x1="2" y1="2" x2="22" y2="22" />
     </>
   ),
+  message: (
+    <path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.5 8.5 0 0 1-.9-3.8A8.38 8.38 0 0 1 12.5 3 8.38 8.38 0 0 1 21 11.5Z" />
+  ),
+  send: (
+    <>
+      <line x1="22" y1="2" x2="11" y2="13" />
+      <path d="M22 2 15 22l-4-9-9-4 20-7Z" />
+    </>
+  ),
+  smile: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+      <line x1="9" y1="9" x2="9.01" y2="9" />
+      <line x1="15" y1="9" x2="15.01" y2="9" />
+    </>
+  ),
+  'chevron-down': <path d="m6 9 6 6 6-6" />,
 };
 
 interface IconProps {

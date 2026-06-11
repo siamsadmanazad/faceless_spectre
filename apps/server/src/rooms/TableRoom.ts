@@ -8,6 +8,8 @@ import {
   MAX_INTENTS_PER_SECOND,
   MAX_PRESENCE_PER_SECOND,
   MAX_SIGNALING_PER_SECOND,
+  MAX_CHAT_PER_SECOND,
+  MAX_CHAT_LENGTH,
   MAX_PLAYERS,
   MIN_PLAYERS,
   PRESENCE_FLUSH_MS,
@@ -36,6 +38,7 @@ import {
   type WebRTCOfferIntent,
   type WebRTCAnswerIntent,
   type WebRTCIceIntent,
+  type ChatIntent,
 } from '@faceless-spectre/shared';
 import { RoomStateSchema } from '../state/RoomStateSchema';
 import { CardSchema } from '../state/CardSchema';
@@ -68,6 +71,7 @@ export class TableRoom extends Room<RoomStateSchema> {
   /** Per-session counters for the non-throwing rate caps (presence, signaling). */
   private presenceCounts = new Map<string, { count: number; windowStart: number }>();
   private signalingCounts = new Map<string, { count: number; windowStart: number }>();
+  private chatCounts = new Map<string, { count: number; windowStart: number }>();
 
   /**
    * Latest presence per player, buffered and flushed on a fixed tick rather than
@@ -156,6 +160,7 @@ export class TableRoom extends Room<RoomStateSchema> {
     this.intentCounts.delete(client.sessionId);
     this.presenceCounts.delete(client.sessionId);
     this.signalingCounts.delete(client.sessionId);
+    this.chatCounts.delete(client.sessionId);
     this.latestPresence.delete(client.sessionId);
     this.dirtyPresence.delete(client.sessionId);
 
@@ -475,6 +480,10 @@ export class TableRoom extends Room<RoomStateSchema> {
 
     this.onMessage(IntentType.Kick, (client, msg: KickIntent) => {
       this.handleKick(client, msg.targetId);
+    });
+
+    this.onMessage(IntentType.Chat, (client, msg: ChatIntent) => {
+      this.handleChat(client, msg);
     });
 
     this.onMessage(IntentType.WebRTCOffer, (client, msg: WebRTCOfferIntent) => {
@@ -900,6 +909,32 @@ export class TableRoom extends Room<RoomStateSchema> {
       if (err instanceof IntentError) this.rejectIntent(client, err.code, err.message);
       else throw err;
     }
+  }
+
+  // ── Chat ───────────────────────────────────────────────────────────────────
+
+  /**
+   * Relay a chat line to everyone in the room. Chat is public and non-causal —
+   * it never carries card identity, so it bypasses the visibility filter and is
+   * not recorded in the deck-state audit path. The sender's name is resolved
+   * server-side (clients can't spoof it); spectators (no seat) may chat too.
+   * The text is trimmed and length-capped; empties are dropped, and a flood is
+   * dropped silently via the non-throwing per-second rate gate.
+   */
+  private handleChat(client: Client, msg: ChatIntent): void {
+    if (!this.withinRate(this.chatCounts, client.sessionId, MAX_CHAT_PER_SECOND)) return;
+
+    const text = String(msg?.text ?? '').trim().slice(0, MAX_CHAT_LENGTH);
+    if (text.length === 0) return;
+
+    const fromName = this.state.players.get(client.sessionId)?.displayName ?? 'Spectator';
+    this.broadcast(ServerMessageType.Chat, {
+      type: ServerMessageType.Chat,
+      fromId: client.sessionId,
+      fromName,
+      text,
+      ts: Date.now(),
+    });
   }
 
   // ── WebRTC signaling relay ─────────────────────────────────────────────────

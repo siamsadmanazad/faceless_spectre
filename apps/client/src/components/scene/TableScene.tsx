@@ -25,6 +25,7 @@ import { useVoice } from '../../hooks/useVoice';
 import { usePageVisible } from '../../hooks/usePageVisible';
 import { useRoomStore } from '../../store/roomStore';
 import { HUD } from '../hud/HUD';
+import { ChatPanel } from '../hud/ChatPanel';
 import { ShuffleSelector } from '../hud/ShuffleSelector';
 
 interface TableSceneProps {
@@ -57,7 +58,7 @@ export function TableScene({ roomId, displayName, spectate = false }: TableScene
     };
   }, [intro]);
 
-  const { connected, error, draw, shuffle, deal, grab, release, sendPresence, setBackfill, backfillVote, lockTable, kick, sendIntent, roomRef } = useColyseus(roomId, displayName, spectate);
+  const { connected, error, draw, shuffle, deal, grab, release, sendChat, sendPresence, setBackfill, backfillVote, lockTable, kick, sendIntent, roomRef } = useColyseus(roomId, displayName, spectate);
   const { isMuted, toggleMute, audioEnabled } = useVoice({ roomRef, sendIntent, active: visible });
   const [shufflePanelOpen, setShufflePanelOpen] = useState(false);
   const selectedCardId = useRoomStore((s) => s.selectedCardId);
@@ -197,6 +198,9 @@ export function TableScene({ roomId, displayName, spectate = false }: TableScene
       </Canvas>
 
       <HUD connected={connected} draw={draw} onShuffleClick={() => setShufflePanelOpen(true)} deal={() => deal(5)} isMuted={isMuted} toggleMute={toggleMute} audioEnabled={audioEnabled} setBackfill={setBackfill} backfillVote={backfillVote} lockTable={lockTable} kick={kick} spectate={spectate} />
+
+      {/* In-room chat — players and spectators alike. Voice is on Discord. */}
+      {connected && <ChatPanel sendChat={sendChat} />}
 
       <ShuffleSelector
         open={shufflePanelOpen}

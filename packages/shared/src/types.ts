@@ -273,6 +273,20 @@ export interface PresenceMessage {
   presences: PresencePayload[];
 }
 
+/**
+ * A chat line, broadcast to everyone in the room. Chat is public and non-secret:
+ * it never carries card identity, so it does not pass through the per-viewer
+ * visibility filter. `fromId` is the sender's sessionId (cosmetic — used to
+ * style your own lines); `fromName` is their display name, resolved server-side.
+ */
+export interface ChatMessage {
+  type: ServerMessageType.Chat;
+  fromId: string;
+  fromName: string;
+  text: string;
+  ts: number;
+}
+
 export interface WebRTCSignalMessage {
   type: ServerMessageType.WebRTCOffer | ServerMessageType.WebRTCAnswer | ServerMessageType.WebRTCIce;
   fromId: string;
@@ -285,4 +299,5 @@ export type ServerMessage =
   | AnimationCommand
   | ErrorMessage
   | PresenceMessage
+  | ChatMessage
   | WebRTCSignalMessage;

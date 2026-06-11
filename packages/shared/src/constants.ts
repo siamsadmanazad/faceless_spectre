@@ -33,6 +33,37 @@ export const MAX_PRESENCE_PER_SECOND = 30;
 /** Cap on inbound WebRTC signaling messages per session/second (ICE can burst). */
 export const MAX_SIGNALING_PER_SECOND = 60;
 
+/** Server-side cap on inbound chat messages per session/second; excess is
+ *  dropped silently (never rejected/logged — chat is low-value, non-causal). */
+export const MAX_CHAT_PER_SECOND = 3;
+/** Server truncates any chat text to this many characters before broadcasting. */
+export const MAX_CHAT_LENGTH = 200;
+
+/** Prebuilt one-tap chat phrases. Sent as ordinary chat text — the list is just
+ *  a shared UI convenience so the client renders quick-chat buttons. */
+export const QUICK_CHAT_MESSAGES: ReadonlyArray<string> = Object.freeze([
+  'Nice hand!',
+  'Your turn',
+  'Good game',
+  'One sec…',
+  'Deal me in',
+  'Well played',
+  'So close!',
+]);
+
+/** One-tap emoji, appended to the chat input. Plain Unicode — no special wire
+ *  handling; they travel as chat text like anything else. */
+export const QUICK_EMOJIS: ReadonlyArray<string> = Object.freeze([
+  '👍',
+  '😂',
+  '😮',
+  '🔥',
+  '🎉',
+  '😎',
+  '🤔',
+  '💀',
+]);
+
 export const CARD_STATE_MACHINE: Readonly<Record<string, ReadonlyArray<string>>> = Object.freeze({
   DECK: ['DRAWN'],
   DRAWN: ['HAND', 'PLACED'],

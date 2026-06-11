@@ -101,6 +101,7 @@ export enum ServerMessageType {
   AnimationCommand = 'animationCommand',
   Error = 'error',
   Presence = 'presence',
+  Chat = 'chat',
   WebRTCOffer = 'webrtcOffer',
   WebRTCAnswer = 'webrtcAnswer',
   WebRTCIce = 'webrtcIce',

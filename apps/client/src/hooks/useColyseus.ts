@@ -11,6 +11,7 @@ import {
   type AnimationCommand,
   type HandPresence,
   type PresenceMessage,
+  type ChatMessage,
 } from '@faceless-spectre/shared';
 import { useRoomStore, CardView, PlayerView } from '../store/roomStore';
 import { getClientId } from '../lib/clientId';
@@ -178,6 +179,16 @@ export function useColyseus(roomId: string, displayName?: string, spectate = fal
           playSfxFor(msg);
         });
 
+        // Receive chat lines — append to the in-memory chat log
+        room.onMessage(ServerMessageType.Chat, (msg: ChatMessage) => {
+          useRoomStore.getState().addChatMessage({
+            fromId: msg.fromId,
+            fromName: msg.fromName,
+            text: msg.text,
+            ts: msg.ts,
+          });
+        });
+
         // Receive presence updates — update ghost hand positions in store
         room.onMessage(ServerMessageType.Presence, (msg: PresenceMessage) => {
           const store = useRoomStore.getState();
@@ -286,6 +297,14 @@ export function useColyseus(roomId: string, displayName?: string, spectate = fal
     [sendIntent, setSelectedCard],
   );
 
+  const sendChat = useCallback(
+    (text: string) => {
+      const trimmed = text.trim();
+      if (trimmed) sendIntent(IntentType.Chat, { text: trimmed });
+    },
+    [sendIntent],
+  );
+
   const sendPresence = useCallback(
     (hand: HandPresence, maskId: string) => {
       const now = Date.now();
@@ -319,6 +338,7 @@ export function useColyseus(roomId: string, displayName?: string, spectate = fal
     deal,
     grab,
     release,
+    sendChat,
     sendPresence,
     setBackfill,
     backfillVote,
