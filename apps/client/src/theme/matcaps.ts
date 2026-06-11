@@ -126,6 +126,54 @@ export function getGlowTexture(): CanvasTexture {
   return tex;
 }
 
+/**
+ * Soft **turbulent** smoke puff for billboard wisps — an irregular cloud, not a
+ * clean orb. Built by stamping a dozen offset soft blobs (the turbulence), then
+ * masking the whole thing with a radial alpha falloff so it has no hard border.
+ * Greyscale; tint via the sprite material's `color`, animate via its `rotation`.
+ */
+export function getSmokeTexture(): CanvasTexture {
+  const key = 'smoke:puff';
+  const existing = cache.get(key);
+  if (existing) return existing;
+
+  const s = 128;
+  const c = document.createElement('canvas');
+  c.width = s;
+  c.height = s;
+  const ctx = c.getContext('2d')!;
+  ctx.clearRect(0, 0, s, s);
+
+  // Turbulence: a scatter of soft white blobs around the centre.
+  for (let i = 0; i < 14; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const d = Math.random() * s * 0.22;
+    const x = s / 2 + Math.cos(a) * d;
+    const y = s / 2 + Math.sin(a) * d;
+    const r = s * (0.1 + Math.random() * 0.16);
+    const blob = ctx.createRadialGradient(x, y, 0, x, y, r);
+    const alpha = 0.1 + Math.random() * 0.16;
+    blob.addColorStop(0, `rgba(255,255,255,${alpha})`);
+    blob.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = blob;
+    ctx.fillRect(0, 0, s, s);
+  }
+
+  // Soft circular mask — keeps the puff borderless so wisps blend seamlessly.
+  const mask = ctx.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+  mask.addColorStop(0, 'rgba(255,255,255,1)');
+  mask.addColorStop(0.65, 'rgba(255,255,255,1)');
+  mask.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.globalCompositeOperation = 'destination-in';
+  ctx.fillStyle = mask;
+  ctx.fillRect(0, 0, s, s);
+  ctx.globalCompositeOperation = 'source-over';
+
+  const tex = new CanvasTexture(c);
+  cache.set(key, tex);
+  return tex;
+}
+
 /** Warm low-sheen matcap for the card body sides. */
 export function getCardMatcap(): CanvasTexture {
   return build('card:warm', {
