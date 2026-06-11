@@ -14,6 +14,26 @@ import { pgPool } from './db';
 const PORT = Number(process.env.PORT ?? 2567);
 const REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379';
 
+/**
+ * Join a room by its share code. Room ids are case-sensitive, but a human
+ * reading a mixed-case code off one screen and typing it into another browser
+ * easily gets the case wrong — so if the exact id misses, fall back to a
+ * case-insensitive lookup before giving up. (Joining by id reaches private
+ * rooms too; `setPrivate` only hides a room from the browse list.)
+ */
+async function joinByCode(code: string, joinOptions: Record<string, unknown>) {
+  try {
+    return await matchMaker.joinById(code, joinOptions);
+  } catch (err) {
+    const rooms = await matchMaker.query({ name: 'table_room' });
+    const match = rooms.find((r) => r.roomId.toLowerCase() === code.toLowerCase());
+    if (match && match.roomId !== code) {
+      return await matchMaker.joinById(match.roomId, joinOptions);
+    }
+    throw err;
+  }
+}
+
 async function pingRedis(): Promise<void> {
   const redis = new Redis(REDIS_URL);
   await redis.ping();
@@ -106,7 +126,7 @@ async function main(): Promise<void> {
         const joinOptions = { displayName, maskId, clientId, spectate };
 
         const reservation = roomId
-          ? await matchMaker.joinById(roomId, joinOptions)
+          ? await joinByCode(roomId.trim(), joinOptions)
           : await matchMaker.create('table_room', { ...joinOptions, maxPlayers });
 
         return reply.code(200).send({

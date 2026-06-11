@@ -14,12 +14,11 @@ import {
 } from '@faceless-spectre/shared';
 import { useRoomStore, CardView, PlayerView } from '../store/roomStore';
 import { getClientId } from '../lib/clientId';
+import { getServerUrl } from '../lib/serverUrl';
 import { audio } from '../lib/audio';
 import { getShuffleDurationMs } from '../lib/shuffle/timings';
 import { prefersReducedMotion } from '../lib/motion';
 import { AnimationType } from '@faceless-spectre/shared';
-
-const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL ?? 'http://localhost:2567';
 
 /** Map a server animation command to its procedural sound. */
 function playSfxFor(msg: AnimationCommand): void {
@@ -83,7 +82,8 @@ export function useColyseus(roomId: string, displayName?: string, spectate = fal
 
     async function connect() {
       try {
-        const client = new Client(SERVER_URL);
+        const serverUrl = getServerUrl();
+        const client = new Client(serverUrl);
         // eslint-disable-next-line prefer-const
         let room!: Room;
         let joined = false;
@@ -130,7 +130,7 @@ export function useColyseus(roomId: string, displayName?: string, spectate = fal
 
         // 3. Fresh join as final fallback (joining an existing room from the lobby list).
         if (!joined) {
-          const res = await fetch(`${SERVER_URL}/rooms/join`, {
+          const res = await fetch(`${serverUrl}/rooms/join`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ roomId, displayName: displayName ?? 'Player', clientId: getClientId(), spectate }),

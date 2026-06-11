@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { getClientId } from '../lib/clientId';
+import { getServerUrl } from '../lib/serverUrl';
 import { palette, lobbyGradient, font } from '../theme/palette';
 import { Icon } from '../components/ui/Icon';
 
@@ -14,7 +15,6 @@ const LobbyScene = dynamic(
   { ssr: false },
 );
 
-const SERVER = process.env.NEXT_PUBLIC_SERVER_URL ?? 'http://localhost:2567';
 const NAME_KEY = 'fs_name';
 
 interface RoomInfo {
@@ -60,7 +60,7 @@ export default function LobbyPage() {
 
   async function fetchRooms() {
     try {
-      const res = await fetch(`${SERVER}/lobby`);
+      const res = await fetch(`${getServerUrl()}/lobby`);
       if (res.ok) setRooms(await res.json());
     } catch {
       // server might not be up yet
@@ -79,7 +79,7 @@ export default function LobbyPage() {
     setError('');
     rememberName();
     try {
-      const res = await fetch(`${SERVER}/rooms/quickplay`, {
+      const res = await fetch(`${getServerUrl()}/rooms/quickplay`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ displayName: name, clientId: getClientId() }),
@@ -98,7 +98,7 @@ export default function LobbyPage() {
     setError('');
     rememberName();
     try {
-      const res = await fetch(`${SERVER}/rooms/create`, {
+      const res = await fetch(`${getServerUrl()}/rooms/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ displayName: name, maxPlayers, mode: 'private', clientId: getClientId() }),
