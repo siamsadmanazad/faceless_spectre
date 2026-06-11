@@ -11,9 +11,14 @@ primary_region = "ord"
 [http_service]
   internal_port        = 2567
   force_https          = true
-  auto_stop_machines   = false
+  # Scale to zero when idle (friends-only, cost-minimized): the machine stops
+  # after the last connection drops and auto-starts on the next request (~1-3s
+  # cold start). In-memory rooms don't survive an idle stop — fine for a sandbox
+  # with no durable game state. Flip min_machines_running back to 1 (and
+  # auto_stop_machines to false) for always-warm, instant joins.
+  auto_stop_machines   = "stop"
   auto_start_machines  = true
-  min_machines_running = 1
+  min_machines_running = 0
 
   [http_service.concurrency]
     type       = "connections"
