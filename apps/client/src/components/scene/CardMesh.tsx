@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Mesh, Color } from 'three';
 import { useFrame } from '@react-three/fiber';
 import { getBackTexture, getFaceTexture } from './cardTextures';
@@ -11,6 +11,8 @@ const CARD_W = 0.7;
 const CARD_H = 1.0;
 const CARD_D = 0.008;
 const CARD_EDGE = palette.paperEdge;
+
+const easeOutCubic = (t: number): number => 1 - Math.pow(1 - t, 3);
 
 interface CardMeshProps {
   rank?: string;
@@ -45,6 +47,14 @@ export function CardMesh({
   // Tracked emissive intensity, mirrored here so the rest state can be detected
   // without reading back off the materials each frame.
   const emissive = useRef(0);
+  // Flip flourish progress: 1 = settled, <1 = mid reveal/deal-in flip.
+  const flipT = useRef(1);
+
+  // Trigger a flip flourish whenever the card turns face-up (reveal, or dealt
+  // into your own hand on first appearance).
+  useEffect(() => {
+    if (faceUp) flipT.current = 0;
+  }, [faceUp]);
 
   // Shared, cached textures — never per-instance, never disposed here (owned by
   // the module-level cache and reused across every card for the whole session).
@@ -56,7 +66,10 @@ export function CardMesh({
     if (!mesh) return;
 
     const lp = lerpedPos.current;
-    const targetScale = highlighted ? 1.08 : 1.0;
+    const flipping = flipT.current < 1;
+    // A flourish "pop" makes the card swell slightly as it flips/reveals.
+    const flipPop = flipping ? Math.sin(easeOutCubic(flipT.current) * Math.PI) * 0.07 : 0;
+    const targetScale = (highlighted ? 1.08 : 1.0) + flipPop;
     const targetIntensity = isSelected ? 0.35 : 0.0;
 
     const dx = position[0] - lp[0];
@@ -66,9 +79,10 @@ export function CardMesh({
     const dEmissive = targetIntensity - emissive.current;
 
     // At-rest fast path: a settled card does nothing per frame. With dozens of
-    // mostly-stationary cards this skips the bulk of the per-frame work (the
-    // material-array walk and Object3D writes) for everything not in motion.
+    // mostly-stationary cards this skips the bulk of the per-frame work for
+    // everything not in motion. A flip in progress keeps it animating.
     if (
+      !flipping &&
       dx * dx + dy * dy + dz * dz < 1e-8 &&
       Math.abs(dScale) < 1e-3 &&
       Math.abs(dEmissive) < 1e-3
@@ -76,14 +90,23 @@ export function CardMesh({
       return;
     }
 
-    // Scale lerp for hover/selected highlight
-    mesh.scale.setScalar(mesh.scale.x + dScale * 0.12);
+    // Scale lerp for hover/selected highlight (+ flip pop)
+    mesh.scale.setScalar(mesh.scale.x + dScale * 0.16);
 
-    // Position lerp for smooth card movement
-    lp[0] += dx * 0.18;
-    lp[1] += dy * 0.18;
-    lp[2] += dz * 0.18;
-    mesh.position.set(lp[0], lp[1], lp[2]);
+    // Position lerp + travel arc: the card lifts off the felt while it has
+    // distance to cover (draw/deal), settling flat as it arrives.
+    lp[0] += dx * 0.2;
+    lp[1] += dy * 0.2;
+    lp[2] += dz * 0.2;
+    const arc = Math.min(Math.hypot(dx, dz), 1.6) * 0.45;
+    mesh.position.set(lp[0], lp[1] + arc, lp[2]);
+
+    // Reveal/deal-in flip: a half-turn that eases into the resting rotation.
+    if (flipping) {
+      flipT.current = Math.min(1, flipT.current + 0.05);
+      const flipAngle = (1 - easeOutCubic(flipT.current)) * Math.PI;
+      mesh.rotation.set(rotation[0] + flipAngle, rotation[1], rotation[2]);
+    }
 
     // Emissive lerp for selection glow
     emissive.current += dEmissive * 0.15;
