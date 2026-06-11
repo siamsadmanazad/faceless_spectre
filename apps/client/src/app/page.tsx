@@ -2,9 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { getClientId } from '../lib/clientId';
 import { palette, lobbyGradient, font } from '../theme/palette';
 import { Icon } from '../components/ui/Icon';
+
+// 3D hero background — client-only (WebGL doesn't SSR) and lazy so the form
+// paints immediately over the warm gradient while the scene warms up.
+const LobbyScene = dynamic(
+  () => import('../components/lobby/LobbyScene').then((m) => m.LobbyScene),
+  { ssr: false },
+);
 
 const SERVER = process.env.NEXT_PUBLIC_SERVER_URL ?? 'http://localhost:2567';
 const NAME_KEY = 'fs_name';
@@ -119,6 +127,7 @@ export default function LobbyPage() {
 
   return (
     <main style={styles.root}>
+      <LobbyScene />
       <div style={styles.card}>
         <h1 style={styles.title}>
           <Icon name="ghost" size={28} style={{ color: palette.hearth }} /> Faceless Spectre
@@ -231,13 +240,16 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '24px 0',
   },
   card: {
-    background: 'rgba(247,239,225,0.05)',
-    backdropFilter: 'blur(12px)',
+    position: 'relative',
+    zIndex: 1,
+    background: 'rgba(26,20,16,0.55)',
+    backdropFilter: 'blur(14px)',
     border: `1px solid ${palette.glassBorder}`,
     borderRadius: 16,
     padding: '40px 48px',
     width: 400,
     color: palette.textPrimary,
+    boxShadow: '0 20px 60px rgba(0,0,0,0.45)',
   },
   title: {
     margin: 0,
