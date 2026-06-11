@@ -15,6 +15,7 @@ import { SafeEnvironment } from './SafeEnvironment';
 import { SceneLighting } from './SceneLighting';
 import { Atmosphere } from './Atmosphere';
 import { CameraHome, type OrbitControlsLike } from './CameraHome';
+import { JoinIntro } from './JoinIntro';
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion';
 import { palette, font } from '../../theme/palette';
 import { Icon } from '../ui/Icon';
@@ -37,6 +38,23 @@ export function TableScene({ roomId, displayName, spectate = false }: TableScene
   const visible = usePageVisible();
   const reducedMotion = usePrefersReducedMotion();
   const controlsRef = useRef<React.ComponentRef<typeof OrbitControls>>(null);
+
+  // Join cinematic: a camera descent into the seated view, with a dark veil that
+  // masks the connection. Skippable; disabled for reduced motion.
+  const [intro, setIntro] = useState(true);
+  useEffect(() => {
+    if (reducedMotion) setIntro(false);
+  }, [reducedMotion]);
+  useEffect(() => {
+    if (!intro) return;
+    const skip = () => setIntro(false);
+    window.addEventListener('pointerdown', skip);
+    window.addEventListener('keydown', skip);
+    return () => {
+      window.removeEventListener('pointerdown', skip);
+      window.removeEventListener('keydown', skip);
+    };
+  }, [intro]);
 
   const { connected, error, draw, shuffle, deal, grab, release, sendPresence, setBackfill, backfillVote, lockTable, kick, sendIntent, roomRef } = useColyseus(roomId, displayName, spectate);
   const { isMuted, toggleMute, audioEnabled } = useVoice({ roomRef, sendIntent, active: visible });
@@ -66,7 +84,7 @@ export function TableScene({ roomId, displayName, spectate = false }: TableScene
   }, [visible]);
 
   useEffect(() => {
-    if (spectate) return; // spectators have no actions
+    if (spectate || intro) return; // spectators/intro have no game actions
     function onKey(e: KeyboardEvent) {
       if (e.target instanceof HTMLInputElement) return;
       switch (e.key.toLowerCase()) {
@@ -81,7 +99,7 @@ export function TableScene({ roomId, displayName, spectate = false }: TableScene
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [spectate, draw, deal, release, selectedCardId, toggleMute]);
+  }, [spectate, intro, draw, deal, release, selectedCardId, toggleMute]);
 
   if (error) {
     return (
@@ -137,8 +155,12 @@ export function TableScene({ roomId, displayName, spectate = false }: TableScene
           )}
         </Suspense>
 
+        {/* The intro owns the camera; OrbitControls is disabled until it lands. */}
+        {intro && <JoinIntro onDone={() => setIntro(false)} />}
+
         <OrbitControls
           ref={controlsRef}
+          enabled={!intro}
           enablePan={false}
           minDistance={3}
           maxDistance={12}
@@ -148,7 +170,7 @@ export function TableScene({ roomId, displayName, spectate = false }: TableScene
             OrbitControls is a superset of OrbitControlsLike — narrow the ref. */}
         <CameraHome
           controlsRef={controlsRef as React.RefObject<OrbitControlsLike | null>}
-          animate={!reducedMotion}
+          animate={!reducedMotion && !intro}
         />
 
         {process.env.NODE_ENV === 'development' && <Stats />}
@@ -173,6 +195,24 @@ export function TableScene({ roomId, displayName, spectate = false }: TableScene
           <div style={styles.pausedSubtitle}>Tab inactive — switch back to resume</div>
         </div>
       )}
+
+      {/* Join cinematic — warm veil masks the connection; title resolves over the
+          camera descent. Both fade out as the table is revealed / the intro ends. */}
+      <div
+        style={{
+          ...styles.introVeil,
+          opacity: intro && !connected ? 1 : 0,
+          pointerEvents: intro && !connected ? 'auto' : 'none',
+        }}
+      />
+      <div style={{ ...styles.introTitleWrap, opacity: intro ? 1 : 0, pointerEvents: 'none' }}>
+        <Icon name="ghost" size={40} style={{ color: palette.hearth }} />
+        <div style={styles.introTitle}>Faceless Spectre</div>
+        <div style={styles.introSub}>
+          {connected ? (spectate ? 'Taking your seat in the gallery…' : 'Taking your seat…') : 'Entering the table…'}
+        </div>
+        <div style={styles.introHint}>click or press any key to skip</div>
+      </div>
     </div>
   );
 }
@@ -225,5 +265,40 @@ const styles: Record<string, React.CSSProperties> = {
   },
   pausedTitle: { fontSize: 24, fontWeight: 600, fontFamily: font.display, marginTop: 8 },
   pausedSubtitle: { fontSize: 14, opacity: 0.7 },
+  introVeil: {
+    position: 'absolute',
+    inset: 0,
+    background: `radial-gradient(circle at 50% 42%, ${palette.bgDusk}, ${palette.bgDeep} 70%)`,
+    transition: 'opacity 900ms ease',
+    zIndex: 20,
+  },
+  introTitleWrap: {
+    position: 'absolute',
+    inset: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    color: palette.textPrimary,
+    transition: 'opacity 800ms ease',
+    zIndex: 21,
+    textShadow: '0 2px 24px rgba(0,0,0,0.6)',
+  },
+  introTitle: {
+    fontFamily: font.display,
+    fontSize: 'clamp(34px, 6vw, 56px)',
+    fontWeight: 600,
+    letterSpacing: 1,
+  },
+  introSub: { fontSize: 14, color: palette.textDim, fontFamily: font.ui },
+  introHint: {
+    position: 'absolute',
+    bottom: 40,
+    fontSize: 12,
+    color: palette.textFaint,
+    fontFamily: font.ui,
+    letterSpacing: 0.5,
+  },
 };
 
