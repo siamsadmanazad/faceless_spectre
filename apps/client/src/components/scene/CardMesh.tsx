@@ -5,6 +5,7 @@ import { Mesh, Color } from 'three';
 import { useFrame } from '@react-three/fiber';
 import { getBackTexture, getFaceTexture } from './cardTextures';
 import { palette } from '../../theme/palette';
+import { Halo } from './Halo';
 
 const CARD_W = 0.7;
 const CARD_H = 1.0;
@@ -126,6 +127,8 @@ export function CardMesh({
           <meshStandardMaterial key={i} attach={`material-${i}`} color={mat.color} />
         ),
       )}
+      {/* Arcane aura while held — luminous lift (no-dep glow). */}
+      {isSelected && <Halo color={palette.arcane} size={1.4} opacity={0.5} position={[0, 0, 0.04]} />}
     </mesh>
   );
 }

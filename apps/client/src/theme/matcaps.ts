@@ -99,6 +99,33 @@ export function getMaskMatcap(): CanvasTexture {
   });
 }
 
+/**
+ * Soft white radial glow for additive halo sprites — a no-dependency stand-in
+ * for post-process bloom. Tint via the sprite material's `color`.
+ */
+export function getGlowTexture(): CanvasTexture {
+  const key = 'glow:radial';
+  const existing = cache.get(key);
+  if (existing) return existing;
+
+  const s = 128;
+  const c = document.createElement('canvas');
+  c.width = s;
+  c.height = s;
+  const ctx = c.getContext('2d')!;
+  const g = ctx.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+  g.addColorStop(0.0, 'rgba(255,255,255,1)');
+  g.addColorStop(0.25, 'rgba(255,255,255,0.55)');
+  g.addColorStop(0.6, 'rgba(255,255,255,0.12)');
+  g.addColorStop(1.0, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, s, s);
+
+  const tex = new CanvasTexture(c);
+  cache.set(key, tex);
+  return tex;
+}
+
 /** Warm low-sheen matcap for the card body sides. */
 export function getCardMatcap(): CanvasTexture {
   return build('card:warm', {

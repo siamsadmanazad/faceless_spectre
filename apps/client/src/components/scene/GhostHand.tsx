@@ -6,6 +6,7 @@ import { useFrame } from '@react-three/fiber';
 import { HandState } from '@faceless-spectre/shared';
 import { getHandMatcap, getMaskMatcap } from '../../theme/matcaps';
 import { palette } from '../../theme/palette';
+import { Halo } from './Halo';
 
 interface GhostHandProps {
   position: [number, number, number];
@@ -68,6 +69,10 @@ export function GhostHand({
 
   return (
     <group ref={groupRef}>
+      {/* Soft luminous aura — the ghostly glow (no-dep stand-in for bloom). */}
+      <Halo color={color} size={0.95} opacity={opacity * 0.5} position={[0, 0.02, -0.02]} />
+      <Halo color={palette.paper} size={0.34} opacity={0.18} position={[0, 0.38, 0.02]} />
+
       {/* Palm */}
       <mesh>
         <boxGeometry args={[0.3, 0.08, 0.22]} />
