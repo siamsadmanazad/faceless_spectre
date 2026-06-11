@@ -18,7 +18,9 @@ export type IconName =
   | 'copy'
   | 'check'
   | 'x'
-  | 'ghost';
+  | 'ghost'
+  | 'music'
+  | 'music-off';
 
 const PATHS: Record<IconName, React.ReactNode> = {
   eye: (
@@ -84,6 +86,20 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M4 21V11a8 8 0 0 1 16 0v10l-3-2-2 2-3-2-3 2-2-2Z" />
       <circle cx="9.5" cy="11" r="1" fill="currentColor" stroke="none" />
       <circle cx="14.5" cy="11" r="1" fill="currentColor" stroke="none" />
+    </>
+  ),
+  music: (
+    <>
+      <path d="M9 18V5l12-2v13" />
+      <circle cx="6" cy="18" r="3" />
+      <circle cx="18" cy="16" r="3" />
+    </>
+  ),
+  'music-off': (
+    <>
+      <path d="M9 18V9m0-4V5l12-2v6" />
+      <circle cx="6" cy="18" r="3" />
+      <line x1="2" y1="2" x2="22" y2="22" />
     </>
   ),
 };

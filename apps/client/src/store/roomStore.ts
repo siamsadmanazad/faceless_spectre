@@ -103,6 +103,9 @@ interface RoomState {
   audioEnabled: boolean;
   setMuted: (v: boolean) => void;
   setAudioEnabled: (v: boolean) => void;
+  /** Procedural sound-effects toggle (separate from voice mute). */
+  sfxEnabled: boolean;
+  setSfxEnabled: (v: boolean) => void;
   /** Peers this client has locally silenced (independent of the tab-active gate). */
   mutedPeers: Set<string>;
   togglePeerMute: (peerId: string) => void;
@@ -132,6 +135,7 @@ export const useRoomStore = create<RoomState>((set) => ({
   isMuted: false,
   audioEnabled: false,
   mutedPeers: new Set(),
+  sfxEnabled: true,
 
   setRoomId: (id) => set({ roomId: id }),
   setLocalPlayerId: (id) => set({ localPlayerId: id }),
@@ -159,6 +163,7 @@ export const useRoomStore = create<RoomState>((set) => ({
   clearDeckAnimation: () => set({ deckAnimation: null }),
   setMuted: (v) => set({ isMuted: v }),
   setAudioEnabled: (v) => set({ audioEnabled: v }),
+  setSfxEnabled: (v) => set({ sfxEnabled: v }),
 
   togglePeerMute: (peerId) =>
     set((s) => {

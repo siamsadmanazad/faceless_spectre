@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import { RoomMode } from '@faceless-spectre/shared';
 import { useRoomStore } from '../../store/roomStore';
+import { useEffect } from 'react';
 import { palette, font } from '../../theme/palette';
 import { Icon } from '../ui/Icon';
+import { audio } from '../../lib/audio';
 
 interface HUDProps {
   connected: boolean;
@@ -47,6 +49,13 @@ export function HUD({
   const mutedPeers = useRoomStore((s) => s.mutedPeers);
   const togglePeerMute = useRoomStore((s) => s.togglePeerMute);
   const spectatorCount = useRoomStore((s) => s.spectatorCount);
+  const sfxEnabled = useRoomStore((s) => s.sfxEnabled);
+  const setSfxEnabled = useRoomStore((s) => s.setSfxEnabled);
+
+  // Keep the synth engine in sync with the toggle.
+  useEffect(() => {
+    audio.setEnabled(sfxEnabled);
+  }, [sfxEnabled]);
   const voteActive = useRoomStore((s) => s.backfillVoteActive);
   const voteYes = useRoomStore((s) => s.backfillVoteYes);
   const voteNo = useRoomStore((s) => s.backfillVoteNo);
@@ -171,6 +180,13 @@ export function HUD({
           ) : (
             <span style={styles.noMic}>Mic unavailable</span>
           )}
+          <button
+            style={styles.btn}
+            onClick={() => setSfxEnabled(!sfxEnabled)}
+            title={sfxEnabled ? 'Mute sound effects' : 'Enable sound effects'}
+          >
+            <Icon name={sfxEnabled ? 'music' : 'music-off'} size={16} />
+          </button>
         </div>
       )}
 
