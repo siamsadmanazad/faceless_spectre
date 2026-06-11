@@ -19,6 +19,7 @@ import { JoinIntro } from './JoinIntro';
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion';
 import { palette, font } from '../../theme/palette';
 import { Icon } from '../ui/Icon';
+import { isWebGLAvailable } from '../../lib/webgl';
 import { useColyseus } from '../../hooks/useColyseus';
 import { useVoice } from '../../hooks/useVoice';
 import { usePageVisible } from '../../hooks/usePageVisible';
@@ -109,11 +110,30 @@ export function TableScene({ roomId, displayName, spectate = false }: TableScene
     );
   }
 
+  // 3D requires WebGL — fail gracefully (and on theme) rather than crash.
+  if (typeof window !== 'undefined' && !isWebGLAvailable()) {
+    return (
+      <div style={styles.errorBanner}>
+        <div style={{ textAlign: 'center', maxWidth: 420, padding: 24 }}>
+          <Icon name="ghost" size={40} style={{ color: palette.hearth }} />
+          <div style={{ fontFamily: font.display, fontSize: 22, marginTop: 12 }}>
+            This table needs WebGL
+          </div>
+          <div style={{ color: palette.textDim, fontSize: 14, marginTop: 8 }}>
+            Your browser or device has 3D graphics disabled. Enable WebGL or try a
+            different browser to take your seat.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={styles.root}>
       <Canvas
         shadows
         frameloop={frameloop}
+        dpr={[1, 2]}
         camera={{ position: [0, 5, 7], fov: 50, near: 0.1, far: 100 }}
         style={{ width: '100%', height: '100%' }}
       >

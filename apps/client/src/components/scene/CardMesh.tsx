@@ -6,6 +6,7 @@ import { useFrame } from '@react-three/fiber';
 import { getBackTexture, getFaceTexture } from './cardTextures';
 import { palette } from '../../theme/palette';
 import { Halo } from './Halo';
+import { prefersReducedMotion } from '../../lib/motion';
 
 const CARD_W = 0.7;
 const CARD_H = 1.0;
@@ -53,7 +54,7 @@ export function CardMesh({
   // Trigger a flip flourish whenever the card turns face-up (reveal, or dealt
   // into your own hand on first appearance).
   useEffect(() => {
-    if (faceUp) flipT.current = 0;
+    if (faceUp && !prefersReducedMotion()) flipT.current = 0;
   }, [faceUp]);
 
   // Shared, cached textures — never per-instance, never disposed here (owned by

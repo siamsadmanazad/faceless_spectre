@@ -10,6 +10,7 @@ import { CardMesh } from '../scene/CardMesh';
 import { HandState } from '@faceless-spectre/shared';
 import { palette } from '../../theme/palette';
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion';
+import { isWebGLAvailable } from '../../lib/webgl';
 
 /** The hero motif: a floating masked ghost hand with a few drifting cards.
  *  Slowly auto-rotates and leans toward the cursor (idle parallax). */
@@ -56,8 +57,11 @@ function HeroMotif({ animate }: { animate: boolean }) {
 /** Full-viewport 3D hero behind the lobby form. */
 export function LobbyScene() {
   const reducedMotion = usePrefersReducedMotion();
+  // No WebGL → just the warm gradient (set on <main>); the form still works.
+  if (typeof window !== 'undefined' && !isWebGLAvailable()) return null;
   return (
     <Canvas
+      dpr={[1, 2]}
       camera={{ position: [0, 0.5, 6], fov: 45, near: 0.1, far: 100 }}
       style={{ position: 'fixed', inset: 0, zIndex: 0 }}
       gl={{ antialias: true }}
