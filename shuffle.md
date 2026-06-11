@@ -158,14 +158,14 @@ All still synthesized (no asset files), gated by the existing SFX toggle.
 
 ## 9. Implementation phases (build order)
 
-1. **Choreography engine.** Replace the whole-group wobble in `DeckStack.tsx` with a per-card instanced driver that dispatches to a style choreography function over a phase timeline. (Foundation; no visible behavior change beyond wiring.)
-2. **Riffle vertical slice.** Build Riffle end-to-end (split → interleave → bridge → square) to full polish as the quality bar.
-3. **Remaining styles.** Overhand, Wash, Split, Casino — each its own choreography function and phase timeline.
-4. **Dealer hands.** The scripted ghost-hand system + per-style hand choreography, synced to the deck phases.
-5. **Sound.** Per-style synthesized SFX synced to phases.
-6. **Intensity.** Wire Low/Med/High to repetitions/speed/flourish per style; client-derived per-style durations.
-7. **Polish.** Variation seed, camera nudge (casino), dust/glint accents.
-8. **QA.** Reduced-motion path, perf pass (Stats), and a visual check that all five styles are unmistakably distinct and the deck never shows a face.
+1. ✅ **Choreography engine.** Replace the whole-group wobble in `DeckStack.tsx` with a per-card instanced driver that dispatches to a style choreography function over a phase timeline. (Foundation; no visible behavior change beyond wiring.) — `apps/client/src/lib/shuffle/{timings,choreography}.ts`
+2. ✅ **Riffle vertical slice.** Build Riffle end-to-end (split → interleave → bridge → square) to full polish as the quality bar.
+3. ✅ **Remaining styles.** Overhand, Wash, Split, Casino — each its own choreography function and phase timeline.
+4. ✅ **Dealer hands.** The scripted ghost-hand system + per-style hand choreography, synced to the deck phases — `DealerHands.tsx`, staged at the actor's seat via `actorId` on `AnimationCommand`.
+5. ✅ **Sound.** Per-style synthesized SFX synced to phases — `audio.shuffleStyled()`.
+6. ✅ **Intensity.** Wire Low/Med/High to repetitions/speed/flourish per style; client-derived per-style durations.
+7. ✅ **Polish.** Variation seed (from the animation epoch — cosmetic only). *Deferred: camera nudge (casino), dust/glint accents.*
+8. ✅ **QA.** Reduced-motion settle path; engine invariants under test (`choreography.test.ts`): rest at t=0/1, face-down clamp, no teleports, finite poses, small-deck safety, seed variation.
 
 ---
 

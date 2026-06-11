@@ -7,6 +7,8 @@ import {
   type AnimationCommand,
   type PresencePayload,
 } from '@faceless-spectre/shared';
+import { getShuffleDurationMs } from '../lib/shuffle/timings';
+import { prefersReducedMotion } from '../lib/motion';
 
 export interface CardView {
   id: string;
@@ -41,6 +43,8 @@ export interface DeckAnimation {
   intensity: ShuffleIntensity;
   startedAt: number;
   durationMs: number;
+  /** Who triggered it — cosmetic, stages the dealer hands at their seat. */
+  actorId?: string;
 }
 
 interface RoomState {
@@ -180,14 +184,22 @@ export const useRoomStore = create<RoomState>((set) => ({
       for (const cardId of cmd.cardIds) {
         next.set(cardId, { type: cmd.animation, startedAt: now, durationMs: cmd.durationMs });
       }
-      // Shuffle and Deal animate the deck group rather than individual cards
+      // Shuffle and Deal animate the deck rather than individual cards
       if (cmd.animation === AnimationType.Shuffle || cmd.animation === AnimationType.Deal) {
+        const style = cmd.style ?? ShuffleStyle.Riffle;
+        const intensity = cmd.intensity ?? ShuffleIntensity.Medium;
         const da: DeckAnimation = {
           animation: cmd.animation,
-          style: cmd.style ?? ShuffleStyle.Riffle,
-          intensity: cmd.intensity ?? ShuffleIntensity.Medium,
+          style,
+          intensity,
           startedAt: now,
-          durationMs: cmd.durationMs,
+          // Shuffle length is a client concern (a wash breathes, a riffle
+          // snaps) — derived per style × intensity, not the server's value.
+          durationMs:
+            cmd.animation === AnimationType.Shuffle
+              ? getShuffleDurationMs(style, intensity, prefersReducedMotion())
+              : cmd.durationMs,
+          actorId: cmd.actorId,
         };
         return { activeAnimations: next, deckAnimation: da };
       }

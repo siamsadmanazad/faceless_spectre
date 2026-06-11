@@ -5,6 +5,32 @@ import * as THREE from 'three';
 import { useRoomStore } from '../../store/roomStore';
 import { palette } from '../../theme/palette';
 
+/**
+ * Painterly radial sheen for the felt: a soft pool of hearth-lit highlight at
+ * center fading to a vignetted edge. Baked as a color map; ShapeGeometry UVs
+ * are the shape's world x/y, so repeat/offset remap world space → [0,1].
+ * Radial, so it suits every table shape (all are centered on the origin).
+ */
+const FELT_SHEEN_SPAN = 11; // world units mapped across the texture
+
+function makeFeltSheen(): THREE.CanvasTexture {
+  const s = 512;
+  const c = document.createElement('canvas');
+  c.width = s;
+  c.height = s;
+  const ctx = c.getContext('2d')!;
+  const g = ctx.createRadialGradient(s / 2, s / 2, s * 0.04, s / 2, s / 2, s * 0.52);
+  g.addColorStop(0, palette.feltHi);
+  g.addColorStop(0.38, palette.feltDeep);
+  g.addColorStop(1, '#152f28'); // vignetted edge, a step darker than feltDeep
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, s, s);
+  const tex = new THREE.CanvasTexture(c);
+  tex.repeat.set(1 / FELT_SHEEN_SPAN, 1 / FELT_SHEEN_SPAN);
+  tex.offset.set(0.5, 0.5);
+  return tex;
+}
+
 /** Tiling micro-noise for a painterly felt surface (varies roughness subtly). */
 function makeFeltGrain(): THREE.CanvasTexture {
   const s = 128;
@@ -106,15 +132,18 @@ export function Table() {
   // ShapeGeometry lives in useMemo so it isn't recreated every frame
   const felt = useMemo(() => feltShape(maxPlayers), [maxPlayers]);
   const grain = useMemo(() => makeFeltGrain(), []);
+  const sheen = useMemo(() => makeFeltSheen(), []);
 
   return (
     <group>
-      {/* Painterly warm felt — micro-noise varies roughness; lighting paints the
-          warm hearth pool. Grounding comes from <ContactShadows> in SceneLighting. */}
+      {/* Painterly warm felt — a baked radial sheen pools the hearth light at
+          center and vignettes the edge; micro-noise varies roughness.
+          Grounding comes from <ContactShadows> in SceneLighting. */}
       <mesh rotation={[-Math.PI / 2, 0, 0]}>
         <shapeGeometry args={[felt, 32]} />
         <meshStandardMaterial
-          color={palette.feltDeep}
+          color="#ffffff"
+          map={sheen}
           roughness={0.92}
           metalness={0.04}
           roughnessMap={grain}

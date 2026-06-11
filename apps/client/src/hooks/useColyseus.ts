@@ -15,16 +15,25 @@ import {
 import { useRoomStore, CardView, PlayerView } from '../store/roomStore';
 import { getClientId } from '../lib/clientId';
 import { audio } from '../lib/audio';
+import { getShuffleDurationMs } from '../lib/shuffle/timings';
+import { prefersReducedMotion } from '../lib/motion';
 import { AnimationType } from '@faceless-spectre/shared';
 
 const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL ?? 'http://localhost:2567';
 
 /** Map a server animation command to its procedural sound. */
-function playSfxFor(animation: AnimationType): void {
-  switch (animation) {
+function playSfxFor(msg: AnimationCommand): void {
+  switch (msg.animation) {
     case AnimationType.Draw: audio.draw(); break;
     case AnimationType.Deal: audio.deal(); break;
-    case AnimationType.Shuffle: audio.shuffle(); break;
+    case AnimationType.Shuffle: {
+      const style = msg.style ?? ShuffleStyle.Riffle;
+      const intensity = msg.intensity ?? ShuffleIntensity.Medium;
+      // Reduced motion plays the short settle — give it the short cue too.
+      if (prefersReducedMotion()) audio.shuffle();
+      else audio.shuffleStyled(style, intensity, getShuffleDurationMs(style, intensity));
+      break;
+    }
     case AnimationType.Flip: audio.reveal(); break;
     case AnimationType.Place: audio.place(); break;
     default: break; // Move/Fan are silent
@@ -166,7 +175,7 @@ export function useColyseus(roomId: string, displayName?: string, spectate = fal
         // Receive animation commands and store them for scene components to consume
         room.onMessage(ServerMessageType.AnimationCommand, (msg: AnimationCommand) => {
           useRoomStore.getState().handleAnimationCommand(msg);
-          playSfxFor(msg.animation);
+          playSfxFor(msg);
         });
 
         // Receive presence updates — update ghost hand positions in store

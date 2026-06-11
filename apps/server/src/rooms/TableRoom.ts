@@ -629,6 +629,7 @@ export class TableRoom extends Room<RoomStateSchema> {
         cardIds: [],
         style,
         intensity,
+        actorId: client.sessionId,
       });
     } catch (err) {
       if (err instanceof IntentError) {

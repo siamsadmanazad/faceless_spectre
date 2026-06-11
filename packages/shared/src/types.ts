@@ -255,6 +255,11 @@ export interface AnimationCommand {
   /** Cosmetic style/intensity for the animation — does not affect outcomes. */
   style?: ShuffleStyle;
   intensity?: ShuffleIntensity;
+  /**
+   * sessionId of the player who triggered the animation — purely cosmetic,
+   * used to stage dealer hands at the actor's seat. Never trusted for logic.
+   */
+  actorId?: string;
 }
 
 export interface ErrorMessage {
