@@ -35,6 +35,8 @@ export interface ActiveAnimation {
   type: AnimationType;
   startedAt: number;
   durationMs: number;
+  /** Who triggered it — lets a cast flight arc from the caster's seat. Cosmetic. */
+  actorId?: string;
 }
 
 export interface ChatMessageView {
@@ -199,7 +201,7 @@ export const useRoomStore = create<RoomState>((set) => ({
       const now = Date.now();
       const next = new Map(s.activeAnimations);
       for (const cardId of cmd.cardIds) {
-        next.set(cardId, { type: cmd.animation, startedAt: now, durationMs: cmd.durationMs });
+        next.set(cardId, { type: cmd.animation, startedAt: now, durationMs: cmd.durationMs, actorId: cmd.actorId });
       }
       // Shuffle and Deal animate the deck rather than individual cards
       if (cmd.animation === AnimationType.Shuffle || cmd.animation === AnimationType.Deal) {

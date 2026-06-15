@@ -25,6 +25,13 @@ interface CardMeshProps {
   highlighted?: boolean;
   isSelected?: boolean;
   faceUp?: boolean;
+  /** When set, the card mounts as a fresh cast and flies in from here (the
+   *  caster's hands). Drives the dedicated throw — see `shuffle.md` §12. */
+  castFrom?: [number, number, number];
+  castDurationMs?: number;
+  castArc?: number;
+  /** Signed flat-spin total (radians), applied only about the table normal. */
+  castSpin?: number;
 }
 
 const SELECTED_EMISSIVE = new Color(palette.arcane);
@@ -40,6 +47,10 @@ export function CardMesh({
   highlighted = false,
   isSelected = false,
   faceUp = false,
+  castFrom,
+  castDurationMs,
+  castArc,
+  castSpin,
 }: CardMeshProps) {
   const meshRef = useRef<Mesh>(null);
   const hasFace = !!(rank && suit);
@@ -50,6 +61,21 @@ export function CardMesh({
   const emissive = useRef(0);
   // Flip flourish progress: 1 = settled, <1 = mid reveal/deal-in flip.
   const flipT = useRef(1);
+
+  // Latched once at mount: a fresh cast scripts a throw from the caster's hands
+  // to the resting spot (a low lob + a small flat spin that settles). Null for
+  // cards that simply already exist, and for reduced motion (calm placement).
+  const castRef = useRef(
+    castFrom && !prefersReducedMotion()
+      ? {
+          from: castFrom,
+          dur: Math.max(1, castDurationMs ?? 450),
+          arc: castArc ?? 0.3,
+          spin: castSpin ?? 0,
+          start: Date.now(),
+        }
+      : null,
+  );
 
   // Trigger a flip flourish whenever the card turns face-up (reveal, or dealt
   // into your own hand on first appearance).
@@ -65,6 +91,43 @@ export function CardMesh({
   useFrame(() => {
     const mesh = meshRef.current;
     if (!mesh) return;
+
+    // Cast flight: a scripted throw that overrides the normal lerp until it lands.
+    const cast = castRef.current;
+    if (cast) {
+      const t = (Date.now() - cast.start) / cast.dur;
+      if (t < 1) {
+        const e = easeOutCubic(t);
+        const [fx, fy, fz] = cast.from;
+        const x = fx + (position[0] - fx) * e;
+        const z = fz + (position[2] - fz) * e;
+        const baseY = fy + (position[1] - fy) * e;
+        const lob = cast.arc * Math.sin(Math.PI * t); // little air time, peaks mid-flight
+        mesh.position.set(x, baseY + lob, z);
+        // Keep the lerp anchor on the flat path so the hand-off at landing is seamless.
+        lerpedPos.current[0] = x;
+        lerpedPos.current[1] = baseY;
+        lerpedPos.current[2] = z;
+
+        // Flat spin settles into the resting yaw. The flip flourish (X axis) only
+        // ever runs face-up (the server already revealed) — a hidden face never turns.
+        let flipAngle = 0;
+        if (flipT.current < 1) {
+          flipT.current = Math.min(1, flipT.current + 0.05);
+          flipAngle = (1 - easeOutCubic(flipT.current)) * Math.PI;
+        }
+        const spinOff = (1 - e) * cast.spin;
+        mesh.rotation.set(rotation[0] + flipAngle, rotation[1], rotation[2] + spinOff);
+
+        // A small in-flight swell that settles as it lands.
+        mesh.scale.setScalar((highlighted ? 1.08 : 1.0) + Math.sin(t * Math.PI) * 0.06);
+        return;
+      }
+      // Landed — snap the anchors to rest and hand back to the normal path.
+      castRef.current = null;
+      lerpedPos.current = [position[0], position[1], position[2]];
+      mesh.rotation.set(rotation[0], rotation[1], rotation[2]);
+    }
 
     const lp = lerpedPos.current;
     const flipping = flipT.current < 1;
