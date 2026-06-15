@@ -28,7 +28,7 @@ export const MAX_LIFT_JITTER = 0.006;
 export const TRICK_SHOT_CHANCE = 1 / 6;
 
 /** Bounds on cast flight duration (ms) — used by tests and the stagger budget. */
-export const MIN_CAST_MS = 340;
+export const MIN_CAST_MS = 320;
 export const MAX_CAST_MS = 620;
 
 export interface CardLanding {
@@ -91,8 +91,8 @@ export function flightFor(id: string): CastFlight {
   const r3 = rand01(id, 13);
   const sign = rand01(id, 14) < 0.5 ? -1 : 1;
 
-  // A trick shot lobs higher; an ordinary cast is a low, short toss.
-  const arcHeight = trickShot ? 0.55 + r1 * 0.3 : 0.22 + r1 * 0.16;
+  // A trick shot lobs higher and hangs longer; an ordinary cast is a low, quick toss.
+  const arcHeight = trickShot ? 0.55 + r1 * 0.3 : 0.18 + r1 * 0.14;
 
   // Ordinary spin is biased small (squared) — "a little, sometimes". A trick
   // shot adds a fuller turn (one to two flat rotations).
@@ -100,7 +100,7 @@ export function flightFor(id: string): CastFlight {
   const spin = spinMag * sign;
 
   const durationMs = trickShot
-    ? 480 + r3 * (MAX_CAST_MS - 480)
+    ? 500 + r3 * (MAX_CAST_MS - 500)
     : MIN_CAST_MS + r3 * (470 - MIN_CAST_MS);
 
   return { arcHeight, spin, trickShot, durationMs };

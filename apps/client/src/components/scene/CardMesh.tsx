@@ -102,7 +102,11 @@ export function CardMesh({
         const x = fx + (position[0] - fx) * e;
         const z = fz + (position[2] - fz) * e;
         const baseY = fy + (position[1] - fy) * e;
-        const lob = cast.arc * Math.sin(Math.PI * t); // little air time, peaks mid-flight
+        // Main arc peaks mid-flight; a small secondary hop near touchdown reads
+        // as the card settling onto the felt. Both vanish at t=1 (lands flat).
+        const lob =
+          cast.arc * Math.sin(Math.PI * t) +
+          (t > 0.78 ? cast.arc * 0.1 * Math.sin((Math.PI * (t - 0.78)) / 0.22) : 0);
         mesh.position.set(x, baseY + lob, z);
         // Keep the lerp anchor on the flat path so the hand-off at landing is seamless.
         lerpedPos.current[0] = x;
