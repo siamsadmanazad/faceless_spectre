@@ -36,6 +36,10 @@ export function PlacedCards({ flip }: PlacedCardsProps) {
   const prev = prevRef.current;
   prevRef.current = new Set(placedCards.map((c) => c.id));
 
+  // Stagger a burst so several cards arriving at once don't all land on one
+  // frame — each fresh cast waits a little longer than the last.
+  let freshOrder = 0;
+
   return (
     <group>
       {placedCards.map((card, i) => {
@@ -53,6 +57,7 @@ export function PlacedCards({ flip }: PlacedCardsProps) {
         const casterSeat = isFreshCast
           ? players.get(activeAnimations.get(card.id)?.actorId ?? '')?.seat
           : undefined;
+        const castDelayMs = isFreshCast ? freshOrder++ * 70 : undefined;
 
         return (
           <CardMesh
@@ -67,6 +72,7 @@ export function PlacedCards({ flip }: PlacedCardsProps) {
             castDurationMs={flight?.durationMs}
             castArc={flight?.arcHeight}
             castSpin={flight?.spin}
+            castDelayMs={castDelayMs}
           />
         );
       })}

@@ -32,6 +32,8 @@ interface CardMeshProps {
   castArc?: number;
   /** Signed flat-spin total (radians), applied only about the table normal. */
   castSpin?: number;
+  /** Hold this long before the flight begins (staggers a burst of casts). */
+  castDelayMs?: number;
 }
 
 const SELECTED_EMISSIVE = new Color(palette.arcane);
@@ -51,6 +53,7 @@ export function CardMesh({
   castDurationMs,
   castArc,
   castSpin,
+  castDelayMs,
 }: CardMeshProps) {
   const meshRef = useRef<Mesh>(null);
   const hasFace = !!(rank && suit);
@@ -72,6 +75,7 @@ export function CardMesh({
           dur: Math.max(1, castDurationMs ?? 450),
           arc: castArc ?? 0.3,
           spin: castSpin ?? 0,
+          delay: Math.max(0, castDelayMs ?? 0),
           start: Date.now(),
         }
       : null,
@@ -95,7 +99,16 @@ export function CardMesh({
     // Cast flight: a scripted throw that overrides the normal lerp until it lands.
     const cast = castRef.current;
     if (cast) {
-      const t = (Date.now() - cast.start) / cast.dur;
+      const t = (Date.now() - cast.start - cast.delay) / cast.dur;
+      if (t <= 0) {
+        // Waiting its turn in a staggered burst — hold (pre-spun) at the hands.
+        mesh.position.set(cast.from[0], cast.from[1], cast.from[2]);
+        mesh.rotation.set(rotation[0], rotation[1], rotation[2] + cast.spin);
+        lerpedPos.current[0] = cast.from[0];
+        lerpedPos.current[1] = cast.from[1];
+        lerpedPos.current[2] = cast.from[2];
+        return;
+      }
       if (t < 1) {
         const e = easeOutCubic(t);
         const [fx, fy, fz] = cast.from;
