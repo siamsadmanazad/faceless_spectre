@@ -459,7 +459,7 @@ export class TableRoom extends Room<RoomStateSchema> {
     });
 
     this.onMessage(IntentType.Place, (client, msg: PlaceIntent) => {
-      this.handlePlace(client, msg.cardId, msg.zoneId ?? 'table');
+      this.handlePlace(client, msg.cardId, msg.zoneId ?? 'table', msg.faceUp === true);
     });
 
     this.onMessage(IntentType.Reveal, (client, msg: RevealIntent) => {
@@ -727,7 +727,7 @@ export class TableRoom extends Room<RoomStateSchema> {
     }
   }
 
-  private handlePlace(client: Client, cardId: string, zoneId: string): void {
+  private handlePlace(client: Client, cardId: string, zoneId: string, faceUp = false): void {
     try {
       this.checkRateLimit(client);
       requireSeat(this.state.players, client.sessionId);
@@ -739,6 +739,9 @@ export class TableRoom extends Room<RoomStateSchema> {
       card.state = CardState.Placed;
       card.zoneId = zoneId;
       card.ownerId = '';
+      // Placed cards are face-down on the felt until revealed — drop the owner's
+      // view entitlement so the face stops being sent to anyone.
+      card.visibility = Visibility.Hidden;
 
       if (wasInHand) {
         const player = this.state.players.get(client.sessionId);
@@ -750,7 +753,23 @@ export class TableRoom extends Room<RoomStateSchema> {
         animation: AnimationType.Place,
         durationMs: 300,
         cardIds: [cardId],
+        actorId: client.sessionId,
       });
+
+      // "Play" a card = place + reveal in one motion. The face becomes public
+      // only now, on the server's authority — never sent early for the animation.
+      if (faceUp) {
+        assertLegalTransition(card.state, CardState.Revealed, cardId);
+        card.state = CardState.Revealed;
+        card.visibility = Visibility.Public;
+        this.broadcast(ServerMessageType.AnimationCommand, {
+          type: ServerMessageType.AnimationCommand,
+          animation: AnimationType.Flip,
+          durationMs: 500,
+          cardIds: [cardId],
+          actorId: client.sessionId,
+        });
+      }
     } catch (err) {
       if (err instanceof IntentError) {
         this.rejectIntent(client, err.code, err.message);
@@ -760,22 +779,34 @@ export class TableRoom extends Room<RoomStateSchema> {
     }
   }
 
+  /**
+   * Flip a card on the table. A placed card is public, ownerless felt — any
+   * seated player may flip it (mirrors the sandbox grab rule). The flip toggles:
+   * a face-down card reveals (Public), a face-up card turns back down (Hidden).
+   * Turning a card back down does not un-send a face already broadcast, but the
+   * next state sync stops including it — an intentional "hide" game action.
+   */
   private handleReveal(client: Client, cardId: string): void {
     try {
       this.checkRateLimit(client);
       requireSeat(this.state.players, client.sessionId);
       const card = requireCard(this.state.cards, cardId);
-      requireOwner(card, client.sessionId);
-      assertLegalTransition(card.state, CardState.Revealed, cardId);
+      // Owned (in-hand) cards still require ownership; ownerless table cards are public.
+      if (card.ownerId !== '') requireOwner(card, client.sessionId);
 
-      card.state = CardState.Revealed;
-      card.visibility = Visibility.Public;
+      const turningUp = card.state !== CardState.Revealed;
+      const next = turningUp ? CardState.Revealed : CardState.Placed;
+      assertLegalTransition(card.state, next, cardId);
+
+      card.state = next;
+      card.visibility = turningUp ? Visibility.Public : Visibility.Hidden;
 
       this.broadcast(ServerMessageType.AnimationCommand, {
         type: ServerMessageType.AnimationCommand,
         animation: AnimationType.Flip,
         durationMs: 500,
         cardIds: [cardId],
+        actorId: client.sessionId,
       });
     } catch (err) {
       if (err instanceof IntentError) {

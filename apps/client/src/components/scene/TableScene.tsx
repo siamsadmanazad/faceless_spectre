@@ -58,7 +58,7 @@ export function TableScene({ roomId, displayName, spectate = false }: TableScene
     };
   }, [intro]);
 
-  const { connected, error, draw, shuffle, deal, grab, release, sendChat, sendPresence, setBackfill, backfillVote, lockTable, kick, sendIntent, roomRef } = useColyseus(roomId, displayName, spectate);
+  const { connected, error, draw, shuffle, deal, grab, release, place, reveal, sendChat, sendPresence, setBackfill, backfillVote, lockTable, kick, sendIntent, roomRef } = useColyseus(roomId, displayName, spectate);
   const { isMuted, toggleMute, audioEnabled } = useVoice({ roomRef, sendIntent, active: visible });
   const [shufflePanelOpen, setShufflePanelOpen] = useState(false);
   const selectedCardId = useRoomStore((s) => s.selectedCardId);
@@ -93,6 +93,9 @@ export function TableScene({ roomId, displayName, spectate = false }: TableScene
         case 'd': draw(); break;
         case 'r': setShufflePanelOpen(true); break;
         case 'enter': deal(5); break;
+        case 'p':
+          if (selectedCardId) place(selectedCardId);
+          break;
         case 'escape':
           if (selectedCardId) release(selectedCardId);
           break;
@@ -101,7 +104,7 @@ export function TableScene({ roomId, displayName, spectate = false }: TableScene
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [spectate, intro, draw, deal, release, selectedCardId, toggleMute]);
+  }, [spectate, intro, draw, deal, place, release, selectedCardId, toggleMute]);
 
   if (error) {
     return (
@@ -150,7 +153,7 @@ export function TableScene({ roomId, displayName, spectate = false }: TableScene
         <Suspense fallback={null}>
           <Table />
           <DeckStack />
-          <PlacedCards grab={grab} selectedCardId={selectedCardId} />
+          <PlacedCards flip={reveal} />
           <PlayerHand grab={grab} release={release} selectedCardId={selectedCardId} />
           <GhostHands />
           <OpponentHands />
@@ -163,12 +166,13 @@ export function TableScene({ roomId, displayName, spectate = false }: TableScene
             />
           )}
 
-          {/* Invisible table plane — clicking it releases the selected card */}
+          {/* Invisible table plane — clicking the felt casts the selected card
+              face-up onto the table (the natural "drop it here" gesture). */}
           {selectedCardId && (
             <mesh
               rotation={[-Math.PI / 2, 0, 0]}
               position={[0, 0.005, 0]}
-              onClick={() => release(selectedCardId)}
+              onClick={() => place(selectedCardId)}
             >
               <planeGeometry args={[12, 12]} />
               <meshBasicMaterial transparent opacity={0} depthWrite={false} />
@@ -197,7 +201,7 @@ export function TableScene({ roomId, displayName, spectate = false }: TableScene
         {process.env.NODE_ENV === 'development' && <Stats />}
       </Canvas>
 
-      <HUD connected={connected} draw={draw} onShuffleClick={() => setShufflePanelOpen(true)} deal={() => deal(5)} isMuted={isMuted} toggleMute={toggleMute} audioEnabled={audioEnabled} setBackfill={setBackfill} backfillVote={backfillVote} lockTable={lockTable} kick={kick} spectate={spectate} />
+      <HUD connected={connected} draw={draw} onShuffleClick={() => setShufflePanelOpen(true)} deal={() => deal(5)} playSelected={() => { if (selectedCardId) place(selectedCardId); }} returnSelected={() => { if (selectedCardId) release(selectedCardId); }} isMuted={isMuted} toggleMute={toggleMute} audioEnabled={audioEnabled} setBackfill={setBackfill} backfillVote={backfillVote} lockTable={lockTable} kick={kick} spectate={spectate} />
 
       {/* In-room chat — players and spectators alike. Voice is on Discord. */}
       {connected && <ChatPanel sendChat={sendChat} />}

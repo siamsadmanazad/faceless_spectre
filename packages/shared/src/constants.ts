@@ -71,5 +71,6 @@ export const CARD_STATE_MACHINE: Readonly<Record<string, ReadonlyArray<string>>>
   SELECTED: ['MOVING', 'HAND', 'PLACED'],
   MOVING: ['PLACED', 'HAND'],
   PLACED: ['SELECTED', 'REVEALED'],
-  REVEALED: ['SELECTED'],
+  // REVEALED → PLACED lets a face-up table card be flipped back down (toggle).
+  REVEALED: ['SELECTED', 'PLACED'],
 });

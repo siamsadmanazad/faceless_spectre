@@ -160,7 +160,10 @@ export interface PlaceIntent extends BaseIntent {
   type: IntentType.Place;
   cardId: string;
   zoneId: string;
-  position: [number, number, number];
+  /** Cosmetic landing hint — the server lays cards out by zone, not by coord. */
+  position?: [number, number, number];
+  /** Cast face-up: place and reveal in a single motion (the default for "play"). */
+  faceUp?: boolean;
 }
 
 export interface RevealIntent extends BaseIntent {

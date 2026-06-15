@@ -297,6 +297,22 @@ export function useColyseus(roomId: string, displayName?: string, spectate = fal
     [sendIntent, setSelectedCard],
   );
 
+  // Cast a card from your hand onto the table. faceUp (the default) plays it
+  // "open" — place + reveal in one motion, the satisfying "I played this" move.
+  const place = useCallback(
+    (cardId: string, faceUp = true) => {
+      sendIntent(IntentType.Place, { cardId, zoneId: 'table', faceUp });
+      setSelectedCard(null);
+    },
+    [sendIntent, setSelectedCard],
+  );
+
+  // Flip a card already on the table (toggles face-up / face-down).
+  const reveal = useCallback(
+    (cardId: string) => sendIntent(IntentType.Reveal, { cardId }),
+    [sendIntent],
+  );
+
   const sendChat = useCallback(
     (text: string) => {
       const trimmed = text.trim();
@@ -338,6 +354,8 @@ export function useColyseus(roomId: string, displayName?: string, spectate = fal
     deal,
     grab,
     release,
+    place,
+    reveal,
     sendChat,
     sendPresence,
     setBackfill,

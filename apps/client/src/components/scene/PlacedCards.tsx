@@ -6,11 +6,11 @@ import { CardMesh } from './CardMesh';
 import { CardState } from '@faceless-spectre/shared';
 
 interface PlacedCardsProps {
-  grab: (cardId: string) => void;
-  selectedCardId: string | null;
+  /** Flip a table card face-up / face-down. */
+  flip: (cardId: string) => void;
 }
 
-export function PlacedCards({ grab, selectedCardId }: PlacedCardsProps) {
+export function PlacedCards({ flip }: PlacedCardsProps) {
   const cards = useRoomStore((s) => s.cards);
   const placedCards = Array.from(cards.values()).filter(
     (c) => c.state === CardState.Placed || c.state === CardState.Revealed,
@@ -39,20 +39,17 @@ export function PlacedCards({ grab, selectedCardId }: PlacedCardsProps) {
         const x = (col - 3.5) * 0.85;
         const z = (row - 1) * 1.15;
         const faceUp = canSeeFace(card);
-        const selected = selectedCardId === card.id;
         const rot = rotations.get(card.id) ?? 0;
 
         return (
           <CardMesh
             key={card.id}
-            position={[x, selected ? 0.08 : 0.01 + i * 0.001, z]}
+            position={[x, 0.01 + i * 0.001, z]}
             rotation={[-Math.PI / 2, 0, rot]}
             rank={card.rank}
             suit={card.suit}
             faceUp={faceUp}
-            highlighted={selected}
-            isSelected={selected}
-            onClick={() => grab(card.id)}
+            onClick={() => flip(card.id)}
           />
         );
       })}

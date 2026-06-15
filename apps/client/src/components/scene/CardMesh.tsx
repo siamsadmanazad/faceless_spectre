@@ -99,7 +99,9 @@ export function CardMesh({
     lp[0] += dx * 0.2;
     lp[1] += dy * 0.2;
     lp[2] += dz * 0.2;
-    const arc = Math.min(Math.hypot(dx, dz), 1.6) * 0.45;
+    // Lift scales with travel distance, so a long throw (casting from hand to
+    // the centre of the table) lobs noticeably higher than a short nudge.
+    const arc = Math.min(Math.hypot(dx, dz), 2.4) * 0.5;
     mesh.position.set(lp[0], lp[1] + arc, lp[2]);
 
     // Reveal/deal-in flip: a half-turn that eases into the resting rotation.

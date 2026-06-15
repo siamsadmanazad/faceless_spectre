@@ -13,6 +13,10 @@ interface HUDProps {
   draw: () => void;
   onShuffleClick: () => void;
   deal: () => void;
+  /** Cast the currently selected hand card face-up onto the table. */
+  playSelected: () => void;
+  /** Return the currently selected card to your hand. */
+  returnSelected: () => void;
   isMuted: boolean;
   toggleMute: () => void;
   audioEnabled: boolean;
@@ -28,6 +32,8 @@ export function HUD({
   draw,
   onShuffleClick,
   deal,
+  playSelected,
+  returnSelected,
   isMuted,
   toggleMute,
   audioEnabled,
@@ -64,9 +70,17 @@ export function HUD({
   const isPrivate = mode === RoomMode.Private;
   const [copied, setCopied] = useState(false);
 
+  const selectedCardId = useRoomStore((s) => s.selectedCardId);
+
   const handCount = Array.from(cards.values()).filter(
     (c) => c.ownerId === localPlayerId && (c.state === 'HAND' || c.state === 'SELECTED'),
   ).length;
+
+  // The contextual cast bar appears only while you're holding one of your own
+  // cards (selected & lifted) — that's when "Play" / "Return" make sense.
+  const selectedCard = selectedCardId ? cards.get(selectedCardId) : undefined;
+  const holdingOwnCard =
+    !!selectedCard && selectedCard.ownerId === localPlayerId && selectedCard.state === 'SELECTED';
 
   function copyInvite() {
     if (!roomId) return;
@@ -186,6 +200,19 @@ export function HUD({
             title={sfxEnabled ? 'Mute sound effects' : 'Enable sound effects'}
           >
             <Icon name={sfxEnabled ? 'music' : 'music-off'} size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* Contextual cast bar — shown while holding one of your own cards. */}
+      {!spectate && holdingOwnCard && (
+        <div style={styles.castBar}>
+          <span style={styles.castHint}>Click the table to play · or</span>
+          <button style={styles.castPlayBtn} onClick={playSelected} title="[P]">
+            Play card <kbd>P</kbd>
+          </button>
+          <button style={styles.castReturnBtn} onClick={returnSelected} title="[Esc]">
+            Return to hand <kbd>Esc</kbd>
           </button>
         </div>
       )}
@@ -324,6 +351,43 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     backdropFilter: 'blur(6px)',
     transition: 'background 0.15s',
+  } as React.CSSProperties,
+  castBar: {
+    position: 'absolute',
+    bottom: 78,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    background: palette.glass,
+    border: `1px solid ${palette.hearthSoft}`,
+    backdropFilter: 'blur(6px)',
+    padding: '8px 14px',
+    borderRadius: 10,
+    boxShadow: '0 6px 24px rgba(0,0,0,0.35)',
+  },
+  castHint: { fontSize: 12, color: palette.textDim, fontFamily: 'sans-serif' },
+  castPlayBtn: {
+    padding: '8px 16px',
+    fontSize: 14,
+    fontFamily: 'sans-serif',
+    background: palette.hearth,
+    color: palette.bgDeep,
+    border: `1px solid ${palette.hearthSoft}`,
+    borderRadius: 8,
+    cursor: 'pointer',
+    fontWeight: 600,
+  } as React.CSSProperties,
+  castReturnBtn: {
+    padding: '8px 14px',
+    fontSize: 13,
+    fontFamily: 'sans-serif',
+    background: 'rgba(247,239,225,0.06)',
+    color: palette.textPrimary,
+    border: `1px solid ${palette.glassBorder}`,
+    borderRadius: 8,
+    cursor: 'pointer',
   } as React.CSSProperties,
   playerList: {
     position: 'absolute',
