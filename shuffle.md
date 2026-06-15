@@ -185,3 +185,139 @@ All still synthesized (no asset files), gated by the existing SFX toggle.
 - Per-player signature flourishes; unlockable cosmetic "shuffle skins."
 - A spectator-friendly close-up camera for the casino finale.
 - Tie animation pass-count visuals to the (server-side) statistical pass count for the shuffle-tracking skill layer described in [`docs/realistic-shuffles.md`](./docs/realistic-shuffles.md).
+
+---
+
+## 12. Card Cast Animation (playing a card to the table)
+
+> The single-card companion to the shuffle theatre above. Where a shuffle is
+> *deck* motion, a **cast** is one card lifted off your fan and tossed into the
+> middle of the table. Decorative over a server-decided `Place`/`Reveal` — the
+> server already moved the card to `PLACED`/`REVEALED`; the flight is pure
+> theatre and changes nothing.
+
+### 12.1 Principles (non-negotiable)
+
+- **Decorative, never causal.** The server decides the card is placed (and, for a
+  face-up "play", revealed) *before* anything moves. The throw plays afterward.
+- **Faces honour visibility.** A face-down cast shows a back for the entire
+  flight; a face-up cast shows its face only after the server reveals it. The
+  card never rotates in a way that flashes a hidden face mid-air.
+- **Deterministic, zero-bandwidth.** Landing spot, rotation, air time and spin
+  are all derived from a hash of the card id — every viewer computes the same
+  throw locally, so the server keeps sending just one `Place` command (no
+  coordinates on the wire).
+- **Realistic, not flashy.** Default is a short, low toss with a little settle.
+  Small spin only sometimes; the showy "trick shot" is rare, never the norm.
+- **Performant.** Reuses the existing per-card driver in `CardMesh` and its
+  at-rest fast path — only in-flight cards do work; landed cards cost nothing.
+- **Graceful.** Reduced-motion gets a calm flat placement, no air time or spin.
+
+### 12.2 The current gap
+
+Cast cards snap into a tidy 8-column grid (`PlacedCards.tsx`), and the motion is
+the generic distance lerp in `CardMesh.tsx` (arc by distance + flip flourish). It
+reads as "card slides to a slot." There is no defined centre region, no scatter,
+and no throw character — nothing that says *a hand flicked this down*.
+
+### 12.3 The drop zone (the invisible target)
+
+- A small rectangle centred on the table origin — about **2.0 × 1.4 world
+  units** — comfortably inside every felt shape (it fits even the tight 2-player
+  strip and 4-player square). It has **no mesh, no outline, no marker**: it
+  exists only as math. Nobody ever sees its bounds.
+- Each cast card is assigned a **landing transform inside this zone, derived from
+  a hash of its card id**: an `(x, z)` offset within the bounds, a small in-plane
+  yaw (±~20°), and a tiny per-card lift so cards stack rather than z-fight.
+- This reuses the exact id-hash approach already used for per-card rotation in
+  `PlacedCards.tsx`, so all clients land a given card identically with **no
+  server data**.
+- The result is a **natural, lightly-overlapping scatter** — a messy little pile
+  in the middle — instead of a grid.
+
+### 12.4 The flight (the throw)
+
+A per-card cast flight, triggered when a card enters `PLACED`/`REVEALED` (the
+`Place` `AnimationCommand` already lands per-card in `activeAnimations`). Roughly
+**350–550 ms**, in three beats:
+
+1. **Pluck** — a quick lift off the fan (anticipation); the card rises a few cm.
+2. **Toss** — travels to its hashed landing spot on a **low, short arc** (little
+   air time). In flight it spins **slightly** about the table-normal (a flat
+   spin), the amount hashed so most throws are calm and a few turn more.
+3. **Land** — eases down with a **tiny overshoot/settle** (a 1–2 frame bounce),
+   arriving flat at its hashed pose on the felt.
+
+- **Trick shot (rare, ~1 in 6 by hash):** a higher lob and/or a fuller flat spin
+  — an occasional flourish, deterministic per card so everyone sees the same one.
+- **Flat-spin clamp:** spin stays about the vertical axis so a face-down card can
+  never flash its face during the toss (preserves the visibility invariant).
+
+### 12.5 Determinism & efficiency (the budget)
+
+- **No new server traffic.** Reuses the existing `Place`/`Flip` `AnimationCommand`
+  (`cardIds` + `actorId`) and the per-card `activeAnimations` entry — no
+  coordinates, no extra messages.
+- **Reuses the `CardMesh` driver + at-rest fast path.** A card animates only
+  while its flight is active, then goes idle and costs nothing per frame. Placed
+  cards stay individual meshes (as today) — no new draw-call pattern.
+- **Hash once, not per frame.** The landing transform and flight profile are a
+  cheap integer hash of the id, memoised per card — no `Math.random` in the
+  render loop (matches the deterministic-rotation pattern already in
+  `PlacedCards.tsx`).
+- **Stagger bursts.** When one action places many cards (e.g. a multi-card move),
+  stagger their flight starts by a few ms each so a pile-up never spikes a frame.
+
+### 12.6 Where it lives
+
+- **`apps/client/src/lib/table/dropZone.ts`** (new) — pure, deterministic,
+  unit-testable helpers: `id → landing { x, z, yaw, lift }` within the zone, and
+  `id → flight { arcHeight, spin, trickShot, durationMs }`. No React, no Three.
+- **`PlacedCards.tsx`** — replace the 8-column grid with the drop-zone landing
+  transform from the helper; order by placement so the stacking lift is stable.
+- **`CardMesh.tsx`** — extend the existing flight to honour a cast profile (arc
+  height, in-flight flat spin, settle bounce) while a card's `Place` flight is
+  active; keep the at-rest fast path and the face-down clamp.
+- **Reduced motion** — gate via `prefersReducedMotion()` (`lib/motion.ts`):
+  skip pluck/arc/spin, place flat at the hashed spot.
+
+### 12.7 Implementation phases (build order)
+
+> **Commit discipline:** at the end of **each** phase below, once it builds,
+> lints and its tests are green, run `git add` → `git commit` (conventional
+> message) → `git push` to `origin/main`. Each phase is its own commit — never
+> batch them. **No `Co-Authored-By` / tool-attribution trailer** on any commit.
+
+1. **Drop-zone math + helper (pure, tested).** `id → landing` and `id → flight`,
+   plus trick-shot selection. Unit tests: landings always in-bounds,
+   determinism (same id → same transform), flat-spin clamp, finite values,
+   small-deck/empty safety. → commit + push.
+2. **Scatter landing.** Swap the `PlacedCards` grid for the hashed landing +
+   stacking lift. Static look first (no new flight yet). → commit + push.
+3. **Cast flight.** Extend `CardMesh` to play pluck → toss → land with arc, small
+   flat spin, and settle when a `Place` flight is active. → commit + push.
+4. **Trick shot + variation.** Add the rare higher-lob / extra-spin; tune air
+   time and spin ranges for realism. → commit + push.
+5. **Stagger + budget pass.** Stagger multi-card places; confirm ~60 fps with 4
+   players and a full pile. → commit + push.
+6. **Reduced-motion + QA.** Calm flat settle; confirm faces never flash on a
+   face-down cast; all tests green. → commit + push.
+
+### 12.8 Acceptance criteria (done =)
+
+- A cast reads as **a hand tossing a card into the middle** — short air time,
+  occasional small spin, natural scatter.
+- Cards land **only within the invisible centre zone**, and the zone is never
+  drawn.
+- Every client sees the **same landing + spin** for a given card (deterministic,
+  no extra server data).
+- A **face-down cast never reveals its face** at any point in the flight.
+- **~60 fps** held with 4 players and a full table; idle/landed cards cost
+  nothing per frame.
+- **Reduced motion** gets a calm, flat placement.
+
+### 12.9 Future / stretch
+
+- Per-seat throw signatures (a player's casts arc from their seat direction).
+- A subtle felt dust puff / contact-shadow pulse on landing.
+- A "clear table" gather that sweeps the centre pile back into the deck.
