@@ -65,19 +65,29 @@ export function CardMesh({
   // Flip flourish progress: 1 = settled, <1 = mid reveal/deal-in flip.
   const flipT = useRef(1);
 
-  // Latched once at mount: a fresh cast scripts a throw from the caster's hands
-  // to the resting spot (a low lob + a small flat spin that settles). Null for
-  // cards that simply already exist, and for reduced motion (calm placement).
+  // Latched once at mount. A fresh cast (castFrom set) scripts a throw from the
+  // caster's hands to the resting spot — a low lob + a small flat spin. Reduced
+  // motion collapses that to a brief, gentle drop onto the spot (no air time, no
+  // spin). Null for cards that simply already exist.
   const castRef = useRef(
-    castFrom && !prefersReducedMotion()
-      ? {
-          from: castFrom,
-          dur: Math.max(1, castDurationMs ?? 450),
-          arc: castArc ?? 0.3,
-          spin: castSpin ?? 0,
-          delay: Math.max(0, castDelayMs ?? 0),
-          start: Date.now(),
-        }
+    castFrom
+      ? prefersReducedMotion()
+        ? {
+            from: [position[0], position[1] + 0.25, position[2]] as [number, number, number],
+            dur: 160,
+            arc: 0,
+            spin: 0,
+            delay: 0,
+            start: Date.now(),
+          }
+        : {
+            from: castFrom,
+            dur: Math.max(1, castDurationMs ?? 450),
+            arc: castArc ?? 0.3,
+            spin: castSpin ?? 0,
+            delay: Math.max(0, castDelayMs ?? 0),
+            start: Date.now(),
+          }
       : null,
   );
 
