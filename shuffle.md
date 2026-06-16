@@ -594,7 +594,7 @@ but joyless and hard to read.
    `palette.ts`, keeping hues and legibility. → commit + push + ✅.
 2. ✅ **Light rig re-balance.** Raise ambient/key/rim/hemisphere; soften contact
    shadow. → commit + push + ✅.
-3. ⬜ **Tone mapping & exposure.** Explicit ACESFilmic + tuned exposure + colour
+3. ✅ **Tone mapping & exposure.** Explicit ACESFilmic + tuned exposure + colour
    space on the Canvas. → commit + push + ✅.
 4. ⬜ **Backdrop & atmosphere polish.** Brighter elegant gradient + hearth glow +
    motes; lift IBL panels. → commit + push + ✅.
