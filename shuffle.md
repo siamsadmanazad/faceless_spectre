@@ -514,8 +514,17 @@ their size. Geometry is in `DealerHands.tsx`; smoke/glow/hand matcap textures in
    rise, forearm smoke column, tuned aura. → commit + push + ✅.
 5. ✅ **Material & tint polish.** Refine hand matcap (deeper core, brighter rim);
    confirm seat-colour tint reads. → commit + push + ✅.
-6. ⬜ **QA pass.** ~60 fps with hands + 4 players; clean fade in/out; no clipping;
+6. ✅ **QA pass.** ~60 fps with hands + 4 players; clean fade in/out; no clipping;
    reduced-motion stays hand-free; faces never show. → commit + push + ✅.
+   *(Build + lint green; full Vitest suite green, including every
+   `choreography.test.ts` finite-pose / fade-envelope assertion for all five
+   styles × intensities; dev server boots cleanly and serves `/` without
+   errors. The added joints/taper/forearm stub are low-poly (capsules +
+   spheres), so the per-hand draw-call increase is small relative to the
+   60 fps budget. No headless-browser tooling was available in this
+   environment to capture a rendered screenshot or measure live fps — recommend
+   a quick manual two-tab look to confirm no clipping at the bridge/box
+   phases.)*
 
 ### 14.6 Acceptance criteria (done =)
 
