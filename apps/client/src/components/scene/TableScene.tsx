@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
+import { ACESFilmicToneMapping, SRGBColorSpace } from 'three';
 import { OrbitControls, Stats } from '@react-three/drei';
 import { ShuffleStyle, ShuffleIntensity } from '@faceless-spectre/shared';
 import { Table } from './Table';
@@ -140,6 +141,11 @@ export function TableScene({ roomId, displayName, spectate = false }: TableScene
         dpr={[1, 2]}
         camera={{ position: [0, 5, 7], fov: 50, near: 0.1, far: 100 }}
         style={{ width: '100%', height: '100%' }}
+        gl={{
+          toneMapping: ACESFilmicToneMapping,
+          toneMappingExposure: 1.2,
+          outputColorSpace: SRGBColorSpace,
+        }}
       >
         <color attach="background" args={[palette.bgDeep]} />
 
@@ -286,7 +292,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    background: 'rgba(26, 20, 16, 0.82)',
+    background: 'rgba(39, 31, 25, 0.82)',
     color: palette.textPrimary,
     fontFamily: 'sans-serif',
     backdropFilter: 'blur(2px)',
