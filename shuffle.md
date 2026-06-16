@@ -415,7 +415,7 @@ so each style *breathes* at its own tempo.
    (lead/lag, buoyancy wobble, finger-curl, hover-hold) in `choreography.ts`, and
    re-tune `DURATION_MS` / phase windows in `timings.ts` so each style gets its
    own tempo. No regressions; invariants green. → commit + push + ✅.
-2. ⬜ **Riffle polish.** Lead/lag interleave + taller springy bridge waterfall +
+2. ✅ **Riffle polish.** Lead/lag interleave + taller springy bridge waterfall +
    crisp square. → commit + push + ✅.
 3. ⬜ **Overhand polish.** Pronounced chop cadence, finger curl/uncurl, per-packet
    arc variance, accelerating passes, clear cycling. → commit + push + ✅.
