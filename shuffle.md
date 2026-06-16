@@ -512,7 +512,7 @@ their size. Geometry is in `DealerHands.tsx`; smoke/glow/hand matcap textures in
    forearm stub dissolving into smoke. → commit + push + ✅.
 4. ✅ **Smoke & ethereal pass.** More/larger wisps, richer turbulence, longer
    rise, forearm smoke column, tuned aura. → commit + push + ✅.
-5. ⬜ **Material & tint polish.** Refine hand matcap (deeper core, brighter rim);
+5. ✅ **Material & tint polish.** Refine hand matcap (deeper core, brighter rim);
    confirm seat-colour tint reads. → commit + push + ✅.
 6. ⬜ **QA pass.** ~60 fps with hands + 4 players; clean fade in/out; no clipping;
    reduced-motion stays hand-free; faces never show. → commit + push + ✅.
