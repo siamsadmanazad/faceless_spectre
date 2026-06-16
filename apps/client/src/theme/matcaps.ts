@@ -144,15 +144,30 @@ export function getSmokeTexture(): CanvasTexture {
   const ctx = c.getContext('2d')!;
   ctx.clearRect(0, 0, s, s);
 
-  // Turbulence: a scatter of soft white blobs around the centre.
-  for (let i = 0; i < 14; i++) {
+  // Turbulence: a scatter of soft white blobs around the centre, plus a
+  // finer second pass so the puff reads as roiling vapour rather than a
+  // single smooth gradient.
+  for (let i = 0; i < 22; i++) {
     const a = Math.random() * Math.PI * 2;
-    const d = Math.random() * s * 0.22;
+    const d = Math.random() * s * 0.26;
     const x = s / 2 + Math.cos(a) * d;
     const y = s / 2 + Math.sin(a) * d;
-    const r = s * (0.1 + Math.random() * 0.16);
+    const r = s * (0.09 + Math.random() * 0.17);
     const blob = ctx.createRadialGradient(x, y, 0, x, y, r);
-    const alpha = 0.1 + Math.random() * 0.16;
+    const alpha = 0.09 + Math.random() * 0.17;
+    blob.addColorStop(0, `rgba(255,255,255,${alpha})`);
+    blob.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = blob;
+    ctx.fillRect(0, 0, s, s);
+  }
+  for (let i = 0; i < 16; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const d = Math.random() * s * 0.32;
+    const x = s / 2 + Math.cos(a) * d;
+    const y = s / 2 + Math.sin(a) * d;
+    const r = s * (0.03 + Math.random() * 0.07);
+    const blob = ctx.createRadialGradient(x, y, 0, x, y, r);
+    const alpha = 0.06 + Math.random() * 0.1;
     blob.addColorStop(0, `rgba(255,255,255,${alpha})`);
     blob.addColorStop(1, 'rgba(255,255,255,0)');
     ctx.fillStyle = blob;

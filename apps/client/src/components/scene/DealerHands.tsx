@@ -64,7 +64,7 @@ const FINGERS: Array<{ x: number; len: number; curl: number; splay: number }> = 
   { x: 0.095, len: 0.077, curl: -1.74, splay: -0.32 }, // pinky (shortest)
 ];
 
-const WISP_COUNT = 7;
+const WISP_COUNT = 11;
 
 function DealerHand({ plan, startedAt, role, color, mirror = false }: DealerHandProps) {
   const groupRef = useRef<Group>(null);
@@ -110,17 +110,17 @@ function DealerHand({ plan, startedAt, role, color, mirror = false }: DealerHand
       const kids = sm.children;
       for (let i = 0; i < kids.length; i++) {
         const sp = kids[i] as Sprite;
-        const life = (clk * 0.4 + i / WISP_COUNT) % 1;
+        const life = (clk * 0.36 + i / WISP_COUNT) % 1;
         const env = Math.sin(life * Math.PI); // 0 → 1 → 0 across the life
         sp.position.set(
-          m * Math.sin(life * 4.2 + i * 1.7) * 0.07, // lateral curl
-          0.02 + life * 0.26, // rises off the wrist
-          0.05 + life * 0.52, // trails back into the column
+          m * Math.sin(life * 4.6 + i * 1.7) * 0.095, // lateral curl
+          0.02 + life * 0.34, // rises off the wrist
+          0.08 + life * 0.6, // trails back into the column, past the forearm stub
         );
-        sp.scale.setScalar(0.2 + life * 0.7); // expands as it climbs
+        sp.scale.setScalar(0.22 + life * 0.85); // expands as it climbs
         const mat = sp.material as SpriteMaterial;
-        mat.opacity = pose.opacity * env * 0.5;
-        mat.rotation = life * 1.5 + i; // slow turbulent spin
+        mat.opacity = pose.opacity * env * 0.55;
+        mat.rotation = life * 1.8 + i; // slow turbulent spin
       }
     }
   });
@@ -131,8 +131,8 @@ function DealerHand({ plan, startedAt, role, color, mirror = false }: DealerHand
         {/* Palm aura — the soft ghost glow, like GhostHand's halo. */}
         <sprite
           position={[0, 0.012, -0.045]}
-          scale={[0.66, 0.66, 0.66]}
-          userData={{ opacityScale: 0.5 }}
+          scale={[0.74, 0.74, 0.74]}
+          userData={{ opacityScale: 0.56 }}
         >
           <spriteMaterial
             map={glow}
