@@ -419,7 +419,7 @@ so each style *breathes* at its own tempo.
    crisp square. → commit + push + ✅.
 3. ✅ **Overhand polish.** Pronounced chop cadence, finger curl/uncurl, per-packet
    arc variance, accelerating passes, clear cycling. → commit + push + ✅.
-4. ⬜ **Wash polish.** Wider flat field, buoyancy wobble, organic swirl, deliberate
+4. ✅ **Wash polish.** Wider flat field, buoyancy wobble, organic swirl, deliberate
    gather. → commit + push + ✅.
 5. ⬜ **Split polish.** Inter-pile hover, weight-shift, clearer tableau + reorder.
    → commit + push + ✅.
