@@ -503,7 +503,7 @@ their size. Geometry is in `DealerHands.tsx`; smoke/glow/hand matcap textures in
 > `git commit` → `git push origin main` → mark ✅. One commit per step, no
 > attribution trailer.
 
-1. ⬜ **Scale & proportion.** Enlarge and re-proportion the hand geometry; add a
+1. ✅ **Scale & proportion.** Enlarge and re-proportion the hand geometry; add a
    group-scale knob; reposition parts + smoke origin. → commit + push + ✅.
 2. ⬜ **Keyframe re-fit.** Re-tune `handPose` per-style/per-phase offsets so the
    larger hands frame the deck without clipping; verify all five styles. → commit
