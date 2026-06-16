@@ -590,7 +590,7 @@ but joyless and hard to read.
 > `git commit` → `git push origin main` → mark ✅. One commit per step, no
 > attribution trailer.
 
-1. ⬜ **Palette luminance lift.** Brighten/enrich atmosphere + surface tokens in
+1. ✅ **Palette luminance lift.** Brighten/enrich atmosphere + surface tokens in
    `palette.ts`, keeping hues and legibility. → commit + push + ✅.
 2. ⬜ **Light rig re-balance.** Raise ambient/key/rim/hemisphere; soften contact
    shadow. → commit + push + ✅.
