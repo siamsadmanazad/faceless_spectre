@@ -736,8 +736,10 @@ function buildWash(
   for (let i = 0; i < count; i++) {
     const r = Math.sqrt(rng());
     const a = rng() * Math.PI * 2;
-    tx[i] = Math.cos(a) * 1.25 * spreadScale * r;
-    tz[i] = Math.sin(a) * 0.85 * spreadScale * r;
+    // Wider and flatter than before — the scatter footprint should be
+    // unmistakably horizontal next to the vertical styles.
+    tx[i] = Math.cos(a) * 1.55 * spreadScale * r;
+    tz[i] = Math.sin(a) * 0.95 * spreadScale * r;
     tyaw[i] = (rng() * 2 - 1) * 2.6;
     layerY[i] = layers[i] * 0.0042 + 0.003;
     swRad[i] = 0.05 + rng() * 0.11;
@@ -768,22 +770,28 @@ function buildWash(
       out.yaw = lerp(out.yaw, tyaw[i], sp);
 
       // Swirl — noisy circular drift; envelope is zero at both ends so the
-      // gather phase starts exactly from the scatter targets.
+      // gather phase starts exactly from the scatter targets. A second,
+      // off-beat wobble on both angle and radius keeps the path organic
+      // rather than a perfect circle, plus a slow buoyant bob.
       const wt = phaseT(pSwirl, t);
       if (wt > 0) {
         const env = Math.sin(Math.PI * wt);
-        const ang = swPhase[i] + wt * swSpeed[i] * 4 * vigor;
-        out.x += Math.cos(ang) * swRad[i] * env;
-        out.z += Math.sin(ang) * swRad[i] * env;
-        out.y += Math.sin(ang * 2) * 0.003 * env;
+        const ang =
+          swPhase[i] + wt * swSpeed[i] * 4 * vigor + Math.sin(wt * 7 + swPhase[i] * 1.3) * 0.4;
+        const radWobble = 1 + Math.sin(wt * 5.3 + swPhase[i]) * 0.18;
+        out.x += Math.cos(ang) * swRad[i] * radWobble * env;
+        out.z += Math.sin(ang) * swRad[i] * radWobble * env;
+        out.y += Math.sin(ang * 2) * 0.003 * env + buoyancy(wt, i, 211, 0.01) * env;
         out.yaw = tyaw[i] + wt * swSpeed[i] * 0.6;
       }
       return;
     }
 
-    // Gather — sweep back to center and restack.
+    // Gather — sweep back to center and restack. A hover-hold (rather than a
+    // straight ease) gives the sweep a deliberate pause mid-flight instead of
+    // a snappy collapse, reading as a full reset rather than a quick tidy-up.
     if (t < pGather.end) {
-      const g = easeInOut(clamp01((phaseT(pGather, t) - dIn[i]) / (1 - dIn[i])));
+      const g = hoverHold(clamp01((phaseT(pGather, t) - dIn[i]) / (1 - dIn[i])));
       restPose(i, out);
       const rx = out.x;
       const ry = out.y;
