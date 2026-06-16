@@ -11,9 +11,9 @@
 
 export const palette = {
   // ── Atmosphere ───────────────────────────────────────────────────────────
-  bgDeep: '#1a1410', // warm near-black (plum-brown) — scene/vignette base
-  bgDusk: '#2b1d2a', // warm aubergine — mid gradient
-  bgEmber: '#3a2630', // warm ember — lobby gradient upper
+  bgDeep: '#271f19', // warm near-black (plum-brown) — scene/vignette base, lifted for readability
+  bgDusk: '#3c293b', // warm aubergine — mid gradient, lifted + a touch richer
+  bgEmber: '#4e3341', // warm ember — lobby gradient upper, lifted
 
   // ── Accents ──────────────────────────────────────────────────────────────
   hearth: '#f0b15a', // primary — candle/amber glow that "breathes"
@@ -21,10 +21,10 @@ export const palette = {
   arcane: '#5fd6c4', // secondary — cool teal, used sparingly (reveal/select/host)
 
   // ── Surfaces ─────────────────────────────────────────────────────────────
-  feltDeep: '#1f463c', // painterly deep warm pine-teal felt
-  feltHi: '#2c5e50', // felt sheen highlight
-  wood: '#3a2418', // warm walnut rim
-  woodHi: '#5c3d1e', // rim highlight
+  feltDeep: '#27584b', // painterly deep warm pine-teal felt, lifted for an inviting (not murky) table
+  feltHi: '#357160', // felt sheen highlight, lifted to match
+  wood: '#4b2f1f', // warm walnut rim, lifted
+  woodHi: '#6e4924', // rim highlight, lifted
 
   // ── Cards ────────────────────────────────────────────────────────────────
   paper: '#f7efe1', // warm cream card face
