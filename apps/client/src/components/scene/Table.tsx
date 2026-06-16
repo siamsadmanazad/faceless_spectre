@@ -22,7 +22,7 @@ function makeFeltSheen(): THREE.CanvasTexture {
   const g = ctx.createRadialGradient(s / 2, s / 2, s * 0.04, s / 2, s / 2, s * 0.52);
   g.addColorStop(0, palette.feltHi);
   g.addColorStop(0.38, palette.feltDeep);
-  g.addColorStop(1, '#152f28'); // vignetted edge, a step darker than feltDeep
+  g.addColorStop(1, '#1b3e35'); // vignetted edge, a step darker than feltDeep, lifted to match
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, s, s);
   const tex = new THREE.CanvasTexture(c);
@@ -144,8 +144,8 @@ export function Table() {
         <meshStandardMaterial
           color="#ffffff"
           map={sheen}
-          roughness={0.92}
-          metalness={0.04}
+          roughness={0.84}
+          metalness={0.05}
           roughnessMap={grain}
         />
       </mesh>
@@ -153,7 +153,7 @@ export function Table() {
       {/* Warm walnut rim — same shape, 7 % larger, 2 cm below the felt */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} scale={[1.07, 1.07, 1]}>
         <shapeGeometry args={[felt, 32]} />
-        <meshStandardMaterial color={palette.wood} roughness={0.6} metalness={0.15} />
+        <meshStandardMaterial color={palette.woodHi} roughness={0.5} metalness={0.2} />
       </mesh>
     </group>
   );
