@@ -164,7 +164,7 @@ All still synthesized (no asset files), gated by the existing SFX toggle.
 4. ✅ **Dealer hands.** The scripted ghost-hand system + per-style hand choreography, synced to the deck phases — `DealerHands.tsx`, staged at the actor's seat via `actorId` on `AnimationCommand`.
 5. ✅ **Sound.** Per-style synthesized SFX synced to phases — `audio.shuffleStyled()`.
 6. ✅ **Intensity.** Wire Low/Med/High to repetitions/speed/flourish per style; client-derived per-style durations.
-7. ✅ **Polish.** Variation seed (from the animation epoch — cosmetic only). *Deferred: camera nudge (casino), dust/glint accents.*
+7. ✅ **Polish.** Variation seed (from the animation epoch — cosmetic only). *Deferred: camera nudge (casino), dust/glint accents — resolved in §13 step 6.*
 8. ✅ **QA.** Reduced-motion settle path; engine invariants under test (`choreography.test.ts`): rest at t=0/1, face-down clamp, no teleports, finite poses, small-deck safety, seed variation.
 
 ---
@@ -423,7 +423,7 @@ so each style *breathes* at its own tempo.
    gather. → commit + push + ✅.
 5. ✅ **Split polish.** Inter-pile hover, weight-shift, clearer tableau + reorder.
    → commit + push + ✅.
-6. ⬜ **Casino polish (+ deferred §9.7).** Riffle tremor, crisp strip, readable box,
+6. ✅ **Casino polish (+ deferred §9.7).** Riffle tremor, crisp strip, readable box,
    higher finale; plus the camera push-in and dust/glint accents. Resolve §9.7's
    deferred note. → commit + push + ✅.
 7. ⬜ **Cross-style QA.** All invariants green; faces never show; Low vs High
