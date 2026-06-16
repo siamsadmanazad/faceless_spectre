@@ -510,7 +510,7 @@ their size. Geometry is in `DealerHands.tsx`; smoke/glow/hand matcap textures in
    + push + ✅.
 3. ✅ **Anatomical detail.** Knuckle/joint articulation, tapered palm, wrist/
    forearm stub dissolving into smoke. → commit + push + ✅.
-4. ⬜ **Smoke & ethereal pass.** More/larger wisps, richer turbulence, longer
+4. ✅ **Smoke & ethereal pass.** More/larger wisps, richer turbulence, longer
    rise, forearm smoke column, tuned aura. → commit + push + ✅.
 5. ⬜ **Material & tint polish.** Refine hand matcap (deeper core, brighter rim);
    confirm seat-colour tint reads. → commit + push + ✅.
