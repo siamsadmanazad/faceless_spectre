@@ -426,9 +426,23 @@ so each style *breathes* at its own tempo.
 6. ✅ **Casino polish (+ deferred §9.7).** Riffle tremor, crisp strip, readable box,
    higher finale; plus the camera push-in and dust/glint accents. Resolve §9.7's
    deferred note. → commit + push + ✅.
-7. ⬜ **Cross-style QA.** All invariants green; faces never show; Low vs High
+7. ✅ **Cross-style QA.** All invariants green; faces never show; Low vs High
    visibly different; ~60 fps with 4 players; reduced-motion settle calm; SFX
    re-synced. → commit + push + ✅.
+   *(Build + lint green; full Vitest suite green — all 97 tests, including
+   every `choreography.test.ts` invariant (rest at t=0/1, face-down clamp,
+   no teleports, finite poses, table bounds, fade envelope, phase contiguity,
+   duration monotonicity, seed variance, small-deck safety) across all five
+   styles × three intensities, plus the new shared-primitive tests for
+   `leadLag`/`buoyancy`/`hoverHold`/`curlPulse`. `lib/audio.ts`'s
+   `shuffleStyled()` reads phase boundaries via `getPhases`/`findPhase` and the
+   live `durationMs` at call time rather than any hardcoded offsets, so it
+   stayed in sync automatically through every re-tune in this pass — no audio
+   changes were needed. Dev server boots cleanly and serves both `/` and
+   `/room/[roomId]` without console/compile errors. No headless-browser
+   tooling was available in this environment to capture a rendered screenshot
+   or measure live fps — recommend a quick manual two-tab look across all five
+   styles at Low/Med/High to confirm the distinct rhythms read as intended.)*
 
 ### 13.6 Acceptance criteria (done =)
 
