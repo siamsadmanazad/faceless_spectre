@@ -1199,6 +1199,15 @@ function buildCasino(
 
 // ── Public plan builders ──────────────────────────────────────────────────────
 
+// The dealer-hand rig (DealerHands.tsx) renders at a larger HAND_SCALE than
+// these per-style scripts were tuned for. Rather than re-deriving every x/y
+// literal across five styles, the bigger palms/fingers get a uniform spread
+// + clearance correction here: hands sit a bit further apart (so the wider
+// palms don't clip each other at close phases like a bridge arch) and a
+// touch higher (so they clear the deck/felt instead of grazing it).
+const HAND_FIT_SPREAD = 1.3;
+const HAND_FIT_LIFT = 0.04;
+
 export function buildShufflePlan(
   style: ShuffleStyle,
   intensity: ShuffleIntensity,
@@ -1244,6 +1253,8 @@ export function buildShufflePlan(
     },
     handPose(role, t, out) {
       poses.hand(role, clamp01(t), out);
+      out.x *= HAND_FIT_SPREAD;
+      out.y += HAND_FIT_LIFT;
       out.opacity *= fadeEnvelope(clamp01(t));
     },
   };
