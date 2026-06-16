@@ -1064,7 +1064,9 @@ function buildCasino(
   const pBox = findPhase(phases, 'box')!;
   const pBridge = findPhase(phases, 'bridge')!;
   const pSquare = findPhase(phases, 'square')!;
-  const bridgeAmp = intensity === ShuffleIntensity.High ? 0.5 : 0.42;
+  // A taller arch for the dealer flex — the bridge is the signature flourish,
+  // so it should read as the tallest, most confident motion in the set.
+  const bridgeAmp = intensity === ShuffleIntensity.High ? 0.56 : 0.5;
 
   const STRIP_Z_SRC = -0.08;
   const STRIP_Z_DST = 0.12;
@@ -1143,6 +1145,11 @@ function buildCasino(
         out.y = dstY;
         out.z = STRIP_Z_DST;
         out.tilt = 0.01;
+        // A brief landing tap — the packet settles with a tiny thud instead
+        // of freezing the instant it arrives, so the strip reads as a crisp
+        // strike on the felt rather than a glide.
+        const settle = clamp01((st - win.t1) / 0.06);
+        out.y -= Math.sin(Math.PI * settle) * 0.012;
       } else {
         const e = easeInOut(s);
         const arc = Math.sin(Math.PI * e);
@@ -1166,8 +1173,13 @@ function buildCasino(
       const isTop = posBeforeBox[i] >= cut;
       const srcY = posBeforeBox[i] * LIFT;
       const dstY = boxPos[i] * LIFT;
-      // The top portion is lifted out first; the bottom follows it up.
-      const s = easeInOut(isTop ? clamp01(bt / 0.65) : clamp01((bt - 0.3) / 0.7));
+      // The top portion is lifted out first; the bottom follows it up. The
+      // lifted top hovers at the peak of its arc instead of sweeping straight
+      // through it, so the cut is legible — a viewer can actually see the
+      // two halves swap before they land.
+      const s = isTop
+        ? hoverHold(clamp01(bt / 0.65), 0.35, 0.65)
+        : easeInOut(clamp01((bt - 0.3) / 0.7));
       const arc = Math.sin(Math.PI * s);
       out.x = jit(i, 3, 0.02) + (isTop ? arc * 0.28 : 0);
       out.y = lerp(srcY, dstY, s) + (isTop ? arc * 0.2 : arc * 0.04);
@@ -1206,6 +1218,11 @@ function buildCasino(
     const dir = role === 'left' ? -1 : 1;
 
     const flatRiffleHand = (rt: number): void => {
+      // A fine finger-tension tremor, synced to the same high-frequency
+      // ripple as the hand's micro-twitch — the fingers visibly flutter as
+      // they feed the packets, reading as controlled tension rather than a
+      // static grip.
+      const tremor = 1 + Math.sin(rt * 60) * 0.05;
       setHand(
         out,
         dir * lerp(0.56, 0.18, easeInOut(rt)),
@@ -1215,6 +1232,7 @@ function buildCasino(
         dir * 0.3,
         dir * 0.15,
         0.92,
+        tremor,
       );
     };
 
@@ -1236,16 +1254,19 @@ function buildCasino(
           break;
         }
       }
-      const swing = easeInOut(chop);
+      // A crisp snap-down then settle, rather than a smooth symmetric arc,
+      // so each packet tap reads as a fast strike instead of a gentle wave.
+      const snap = chop < 0.35 ? easeOut(chop / 0.35) : 1 - easeIn((chop - 0.35) / 0.65);
       setHand(
         out,
         0.1,
-        0.26 + Math.sin(Math.PI * swing) * 0.1,
-        lerp(STRIP_Z_SRC, STRIP_Z_DST + 0.05, swing),
+        0.26 + snap * 0.1,
+        lerp(STRIP_Z_SRC, STRIP_Z_DST + 0.05, easeInOut(chop)),
         -0.7,
         0,
         -0.1,
         0.92,
+        curlPulse(chop),
       );
       return;
     }
@@ -1257,8 +1278,18 @@ function buildCasino(
       const bt = phaseT(pBox, t);
       const arc = Math.sin(Math.PI * easeInOut(bt));
       if (role === 'right') {
-        // Lifts the top portion out and over.
-        setHand(out, 0.12 + arc * 0.26, deckH * 0.6 + 0.18 + arc * 0.2, -arc * 0.14, -0.7, 0, 0, 0.92);
+        // Lifts the top portion out and over, gripping through the carry.
+        setHand(
+          out,
+          0.12 + arc * 0.26,
+          deckH * 0.6 + 0.18 + arc * 0.2,
+          -arc * 0.14,
+          -0.7,
+          0,
+          0,
+          0.92,
+          curlPulse(easeInOut(bt)),
+        );
       } else {
         setHand(out, -0.16, deckH * 0.4 + 0.14, 0.08 + arc * 0.06, -0.6, 0, 0.15, 0.92);
       }
@@ -1267,7 +1298,17 @@ function buildCasino(
     if (t < pBridge.end) {
       const bt = phaseT(pBridge, t);
       const arch = Math.sin(Math.PI * clamp01(bt / 0.6));
-      setHand(out, dir * 0.18, deckH * 0.6 + 0.16 + arch * 0.34, 0.06, -1.0, 0, dir * 0.15);
+      setHand(
+        out,
+        dir * 0.18,
+        deckH * 0.6 + 0.16 + arch * 0.42,
+        0.06,
+        -1.0,
+        0,
+        dir * 0.15,
+        0.88,
+        curlPulse(clamp01(bt / 0.6)),
+      );
       return;
     }
     const qt = phaseT(pSquare, t);
