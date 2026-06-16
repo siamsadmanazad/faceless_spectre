@@ -68,14 +68,18 @@ export function getHandMatcap(seatColor: string): CanvasTexture {
   c.width = s;
   c.height = s;
   const ctx = c.getContext('2d')!;
-  ctx.fillStyle = '#0a1014';
+  ctx.fillStyle = '#06090b';
   ctx.fillRect(0, 0, s, s);
 
+  // Deeper core + an earlier, hotter rim — at the bigger hand scale the
+  // fresnel glow needs more contrast to still read as luminous vapour
+  // rather than a flat tinted blob.
   const g = ctx.createRadialGradient(s / 2, s / 2, s * 0.08, s / 2, s / 2, s / 2);
-  g.addColorStop(0.0, mix(seatColor, '#0a1014', 0.78)); // faint dark core
-  g.addColorStop(0.55, mix(seatColor, '#0a1014', 0.35));
-  g.addColorStop(0.82, seatColor); // luminous rim
-  g.addColorStop(1.0, mix(seatColor, '#ffffff', 0.55)); // hot edge
+  g.addColorStop(0.0, mix(seatColor, '#06090b', 0.87)); // deep dark core
+  g.addColorStop(0.45, mix(seatColor, '#06090b', 0.4));
+  g.addColorStop(0.72, seatColor); // luminous rim starts earlier
+  g.addColorStop(0.92, mix(seatColor, '#ffffff', 0.5));
+  g.addColorStop(1.0, mix(seatColor, '#ffffff', 0.78)); // hot edge
   ctx.fillStyle = g;
   ctx.beginPath();
   ctx.arc(s / 2, s / 2, s / 2, 0, Math.PI * 2);
