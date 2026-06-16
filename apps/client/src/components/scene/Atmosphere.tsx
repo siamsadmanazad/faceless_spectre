@@ -17,7 +17,7 @@ function useBackdropTexture(): CanvasTexture {
     g.addColorStop(0.0, palette.bgDeep); // top — deep warm dark
     g.addColorStop(0.55, palette.bgDusk); // mid — aubergine
     g.addColorStop(0.85, palette.bgEmber); // low — warm ember
-    g.addColorStop(1.0, '#4a2e2a'); // horizon warmth
+    g.addColorStop(1.0, '#603c37'); // horizon warmth, lifted to match
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, 16, 256);
     return new CanvasTexture(c);
@@ -33,8 +33,8 @@ function useGlowTexture(): CanvasTexture {
     c.height = s;
     const ctx = c.getContext('2d')!;
     const g = ctx.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
-    g.addColorStop(0.0, 'rgba(240, 177, 90, 0.55)');
-    g.addColorStop(0.4, 'rgba(232, 154, 74, 0.22)');
+    g.addColorStop(0.0, 'rgba(240, 177, 90, 0.65)');
+    g.addColorStop(0.4, 'rgba(232, 154, 74, 0.3)');
     g.addColorStop(1.0, 'rgba(232, 154, 74, 0)');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, s, s);
@@ -91,7 +91,7 @@ export function Atmosphere({ animate = true }: AtmosphereProps) {
         position={[0, 2, 0]}
         size={3}
         speed={animate ? 0.25 : 0}
-        opacity={0.5}
+        opacity={0.6}
         color={palette.hearth}
       />
     </group>

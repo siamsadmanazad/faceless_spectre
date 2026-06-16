@@ -14,7 +14,7 @@ import { palette } from '../../theme/palette';
  */
 export function SafeEnvironment() {
   return (
-    <Environment resolution={64} frames={1}>
+    <Environment resolution={128} frames={1}>
       {/* Warm "ceiling" glow above. */}
       <mesh position={[0, 6, 0]} scale={[14, 14, 1]} rotation={[Math.PI / 2, 0, 0]}>
         <planeGeometry />
