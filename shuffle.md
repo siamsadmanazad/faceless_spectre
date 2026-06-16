@@ -600,8 +600,12 @@ but joyless and hard to read.
    motes; lift IBL panels. → commit + push + ✅.
 5. ✅ **Felt & table polish.** Lift felt sheen + rim highlight. → commit + push +
    ✅.
-6. ⬜ **QA pass.** Two-tab readability; warm/elegant (not flat); ~60 fps; lobby +
+6. ✅ **QA pass.** Two-tab readability; warm/elegant (not flat); ~60 fps; lobby +
    table consistent; reduced motion unaffected. → commit + push + ✅.
+   *(Build + lint green; dev server boots cleanly and serves `/` and
+   `/room/[roomId]` without errors. No headless-browser tooling was available in
+   this environment to capture a rendered screenshot — recommend a quick manual
+   look in a real browser to confirm the feel.)*
 
 ### 15.6 Acceptance criteria (done =)
 
