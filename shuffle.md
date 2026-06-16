@@ -596,7 +596,7 @@ but joyless and hard to read.
    shadow. → commit + push + ✅.
 3. ✅ **Tone mapping & exposure.** Explicit ACESFilmic + tuned exposure + colour
    space on the Canvas. → commit + push + ✅.
-4. ⬜ **Backdrop & atmosphere polish.** Brighter elegant gradient + hearth glow +
+4. ✅ **Backdrop & atmosphere polish.** Brighter elegant gradient + hearth glow +
    motes; lift IBL panels. → commit + push + ✅.
 5. ⬜ **Felt & table polish.** Lift felt sheen + rim highlight. → commit + push +
    ✅.
