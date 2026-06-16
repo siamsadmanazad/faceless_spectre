@@ -411,7 +411,7 @@ so each style *breathes* at its own tempo.
 > — never batch. **No `Co-Authored-By` / tool-attribution trailer** on any
 > commit.
 
-1. ⬜ **Shared primitives + rhythm re-tune.** Add reusable tested helper motions
+1. ✅ **Shared primitives + rhythm re-tune.** Add reusable tested helper motions
    (lead/lag, buoyancy wobble, finger-curl, hover-hold) in `choreography.ts`, and
    re-tune `DURATION_MS` / phase windows in `timings.ts` so each style gets its
    own tempo. No regressions; invariants green. → commit + push + ✅.
