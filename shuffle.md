@@ -505,7 +505,7 @@ their size. Geometry is in `DealerHands.tsx`; smoke/glow/hand matcap textures in
 
 1. ✅ **Scale & proportion.** Enlarge and re-proportion the hand geometry; add a
    group-scale knob; reposition parts + smoke origin. → commit + push + ✅.
-2. ⬜ **Keyframe re-fit.** Re-tune `handPose` per-style/per-phase offsets so the
+2. ✅ **Keyframe re-fit.** Re-tune `handPose` per-style/per-phase offsets so the
    larger hands frame the deck without clipping; verify all five styles. → commit
    + push + ✅.
 3. ⬜ **Anatomical detail.** Knuckle/joint articulation, tapered palm, wrist/
