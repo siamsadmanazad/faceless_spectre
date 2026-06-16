@@ -321,3 +321,291 @@ A per-card cast flight, triggered when a card enters `PLACED`/`REVEALED` (the
 - Per-seat throw signatures (a player's casts arc from their seat direction).
 - A subtle felt dust puff / contact-shadow pulse on landing.
 - A "clear table" gather that sweeps the centre pile back into the deck.
+
+---
+
+## 13. Shuffle Style Refinement Pass (signature look & feel)
+
+> A polish pass over the five existing styles (§5). The choreography already
+> works; this gives each style an **unmistakable silhouette, rhythm, and
+> finish** so a glance tells them apart, and raises every style to the Riffle
+> quality bar. Nothing here is causal — the server already decided the order;
+> this is pure theatre over a backs-only deck. This pass also **absorbs the
+> deferred §9.7 items** (casino camera nudge + dust/glint accents).
+
+### 13.1 Principles (non-negotiable)
+
+- **Distinct DNA.** Each style must differ in *motion*, not just hand pose:
+  riffle snaps, overhand chops, wash drifts, split is deliberate, casino is
+  crisp. No two should share a rhythm.
+- **Faces never show.** The face-down clamp (|tilt|,|bank| ≤ ~1.15 rad) holds in
+  every frame of every style and intensity — the security invariant is sacred.
+- **Invariants stay green.** `choreography.test.ts` (rest at t=0/1, clamp, no
+  teleport >0.6u/frame, finite poses, table bounds, phase contiguity, duration
+  monotonicity, seed variance) must pass after **every** step below.
+- **Intensity reads.** Low vs High must be visibly different in vigor /
+  repetitions / flourish.
+- **Budget holds.** One deck draw call (52 instance matrices); ~60 fps with 4
+  players and a full table. Reduced motion keeps the calm ~420 ms settle.
+- **Determinism, zero new bandwidth.** All variety comes from the cosmetic seed
+  (the animation epoch); never from or revealing the real order.
+
+### 13.2 The current gap
+
+The five styles work but share too much motion DNA — interleaves, lifts and
+settles feel similar, so they read as variations of one shuffle rather than five
+distinct ones. The hands are well-synced but the *deck* needs per-style
+character: lead/lag in the riffle cascade, a real chop cadence in the overhand,
+buoyancy in the wash, hover and weight in the split, and tremor + a taller finale
+in the casino. Per-style durations/phase windows are functional but not yet tuned
+so each style *breathes* at its own tempo.
+
+### 13.3 Per-style refinement notes
+
+- **Riffle — the money shot.** Add per-card *lead/lag* so the interleave
+  cascades like real thumb release (some cards leading, some trailing) instead of
+  a uniform zip. Build a taller, springier **bridge arch** with a genuine
+  waterfall ripple that travels along the stack, then a crisp square. High adds
+  the double-riffle with a taller arch.
+- **Overhand — the kitchen-table chop.** Make the rhythmic *chop* the signature:
+  pronounced pull-drop cadence with finger curl/uncurl micro-gestures on the
+  working hand, per-packet arc variance (no two hops identical), and an
+  accelerating pass cadence. The front-to-back cycling of the stack must read
+  clearly.
+- **Wash — the horizontal reset.** Push the **flat chaotic field** silhouette
+  further (wider, flatter scatter that is unmistakably unlike every vertical
+  style), add a gentle per-card buoyancy wobble and more organic noise-driven
+  swirl paths, and make the gather more *deliberate* (less snappy) so it reads as
+  a full reset, not a quick collapse.
+- **Split — the architectural anti-riffle.** Add inter-pile **hover/air gaps**
+  (cards hang a beat between source and destination), a hand-elevation *weight
+  shift* as it grasps each pile, a clearer tableau read during the hold, and a
+  more legible reorder on restack. Calm, methodical, precise.
+- **Casino — the dealer flex.** Add fine **finger-tension tremor** during the
+  flat table riffles, crisper strip taps, a more readable box cut-and-swap, and a
+  **higher bridge finale**. Then land the deferred §9.7 flourishes: a subtle
+  camera push-in on the finale and a faint dust/glint accent on the bridge
+  cascade — both budget- and reduced-motion-aware.
+
+### 13.4 Where it lives
+
+- **`apps/client/src/lib/shuffle/choreography.ts`** — the per-style builders
+  (`buildRiffle/Overhand/Wash/Split/Casino`) and their `cardPose`/`handPose`
+  closures; add small reusable, tested motion helpers (lead/lag, buoyancy wobble,
+  finger-curl param, hover-hold) used across styles.
+- **`apps/client/src/lib/shuffle/timings.ts`** — re-tune `DURATION_MS` and the
+  per-style phase windows so each style has its own tempo.
+- **`apps/client/src/lib/shuffle/choreography.test.ts`** — keep green; extend
+  with any new invariant a helper introduces.
+- **`apps/client/src/components/scene/DeckStack.tsx`** — the instanced player; a
+  camera nudge for the casino finale is wired here (or in the scene), gated by
+  reduced motion.
+- **`apps/client/src/lib/audio.ts`** — per-style SFX must stay synced to the
+  re-tuned phase boundaries.
+
+### 13.5 Implementation phases (build order)
+
+> **Commit discipline:** at the end of **each** step, once it builds, lints and
+> tests are green: `git add` → `git commit` (conventional message) →
+> `git push origin main`, then mark the step ✅ here. Each step is its own commit
+> — never batch. **No `Co-Authored-By` / tool-attribution trailer** on any
+> commit.
+
+1. ⬜ **Shared primitives + rhythm re-tune.** Add reusable tested helper motions
+   (lead/lag, buoyancy wobble, finger-curl, hover-hold) in `choreography.ts`, and
+   re-tune `DURATION_MS` / phase windows in `timings.ts` so each style gets its
+   own tempo. No regressions; invariants green. → commit + push + ✅.
+2. ⬜ **Riffle polish.** Lead/lag interleave + taller springy bridge waterfall +
+   crisp square. → commit + push + ✅.
+3. ⬜ **Overhand polish.** Pronounced chop cadence, finger curl/uncurl, per-packet
+   arc variance, accelerating passes, clear cycling. → commit + push + ✅.
+4. ⬜ **Wash polish.** Wider flat field, buoyancy wobble, organic swirl, deliberate
+   gather. → commit + push + ✅.
+5. ⬜ **Split polish.** Inter-pile hover, weight-shift, clearer tableau + reorder.
+   → commit + push + ✅.
+6. ⬜ **Casino polish (+ deferred §9.7).** Riffle tremor, crisp strip, readable box,
+   higher finale; plus the camera push-in and dust/glint accents. Resolve §9.7's
+   deferred note. → commit + push + ✅.
+7. ⬜ **Cross-style QA.** All invariants green; faces never show; Low vs High
+   visibly different; ~60 fps with 4 players; reduced-motion settle calm; SFX
+   re-synced. → commit + push + ✅.
+
+### 13.6 Acceptance criteria (done =)
+
+- Each of the five styles is **recognizable at a glance** by its own rhythm and
+  finish, all at the Riffle quality bar.
+- **Faces never appear** during any shuffle, any style, any intensity.
+- **Intensity** is visibly different (Low vs High).
+- **~60 fps** held; one deck draw call.
+- **Reduced-motion** settle still calm; **SFX** synced per style.
+- All `choreography.test.ts` invariants pass.
+
+---
+
+## 14. Dealer Hands — Bigger, More Realistic, Smokier
+
+> The scripted ghost hands (§6) that perform shuffles read small and generic.
+> This pass makes them **bigger, more hand-like, and more smoky/ethereal** while
+> keeping the floating-spectre identity. **Procedural only** — no GLTF model, no
+> new dependencies. Enlarging the hands requires re-fitting the per-phase hand
+> keyframes so they still frame the deck; that coupling gets its own step.
+
+### 14.1 Principles (non-negotiable)
+
+- **Still spectral.** Bigger and more detailed, but never solid — the matcap
+  rim-glow + smoke must keep them ghostly, and seat-colour tint must stay legible.
+- **They drive the deck.** After resizing, the hands must still cradle / chop /
+  riffle / swirl / pile the deck correctly, with **no clipping** through the deck
+  or the felt, across all five styles.
+- **Faces never show.** Nothing in the hand pass may let a card face appear.
+- **Budget holds.** Hands stay a few light meshes + sprite smoke; ~60 fps with
+  hands + 4 players + a full table. Reduced motion stays hand-free (calm settle).
+
+### 14.2 The current gap
+
+Hands are small (palm sphere radius ~0.15, very thin capsule fingers, overall
+span ~0.25–0.3 world units) and read as soft blobs with a 7-wisp smoke plume.
+They lack hand-scale presence and anatomical read, and the smoke is modest for
+their size. Geometry is in `DealerHands.tsx`; smoke/glow/hand matcap textures in
+`theme/matcaps.ts`; per-phase keyframes in `choreography.ts` (`handPose`).
+
+### 14.3 Design notes
+
+- **Scale & proportion.** Enlarge palm, fingers, and thumb, and give a believable
+  proportion: finger-length ratio index < middle > ring > pinky, a wider palm,
+  and a longer reach. Add an overall group-scale knob so size is tunable in one
+  place. Reposition fingers, thumb, wrist knuckle, and the smoke origin to match.
+- **Keyframe re-fit.** With larger hands, the per-style/per-phase positions in
+  `handPose` need wider offsets so the hands still frame the deck (cradle on
+  edge, each hand owning a riffle half, both swirling the wash, etc.) without
+  intersecting the deck or table.
+- **Anatomical detail.** Add subtle knuckle/joint articulation (a gentle two-
+  segment finger bend), a tapered palm contour, and a wrist/forearm stub that
+  dissolves into the smoke — more "hand", still spectral. Keep the matcap look.
+- **Smoke & ethereal.** More wisps, richer turbulence in `getSmokeTexture()`, a
+  longer rise and larger spread, and a forearm "dissolve into smoke" column so a
+  bigger hand still reads ghostly rather than solid; tune the palm aura to match.
+- **Material & tint.** Refine `getHandMatcap()` (deeper core, brighter rim) so
+  the larger surface keeps its fresnel rim-glow and the seat colour still reads.
+
+### 14.4 Where it lives
+
+- **`apps/client/src/components/scene/DealerHands.tsx`** — geometry, scale,
+  anatomy, smoke wisp animation, group-scale knob.
+- **`apps/client/src/theme/matcaps.ts`** — `getSmokeTexture()`,
+  `getGlowTexture()`, `getHandMatcap()` tuning.
+- **`apps/client/src/lib/shuffle/choreography.ts`** — `handPose` per-phase
+  position re-fit for the larger hands.
+
+### 14.5 Implementation phases (build order)
+
+> Same commit discipline as §13.5: build + lint + tests green → `git add` →
+> `git commit` → `git push origin main` → mark ✅. One commit per step, no
+> attribution trailer.
+
+1. ⬜ **Scale & proportion.** Enlarge and re-proportion the hand geometry; add a
+   group-scale knob; reposition parts + smoke origin. → commit + push + ✅.
+2. ⬜ **Keyframe re-fit.** Re-tune `handPose` per-style/per-phase offsets so the
+   larger hands frame the deck without clipping; verify all five styles. → commit
+   + push + ✅.
+3. ⬜ **Anatomical detail.** Knuckle/joint articulation, tapered palm, wrist/
+   forearm stub dissolving into smoke. → commit + push + ✅.
+4. ⬜ **Smoke & ethereal pass.** More/larger wisps, richer turbulence, longer
+   rise, forearm smoke column, tuned aura. → commit + push + ✅.
+5. ⬜ **Material & tint polish.** Refine hand matcap (deeper core, brighter rim);
+   confirm seat-colour tint reads. → commit + push + ✅.
+6. ⬜ **QA pass.** ~60 fps with hands + 4 players; clean fade in/out; no clipping;
+   reduced-motion stays hand-free; faces never show. → commit + push + ✅.
+
+### 14.6 Acceptance criteria (done =)
+
+- Hands are **noticeably bigger and more hand-like**, still smoky/ethereal and
+  seat-tinted.
+- They **drive every style's deck motion** correctly with **no clipping**.
+- **Faces never appear**; reduced motion stays a hand-free calm settle.
+- **~60 fps** held with hands + 4 players + a full table.
+
+---
+
+## 15. Environment Colour Re-grade (elegant warm hearth)
+
+> The scene reads **too dark to enjoy**. This re-grade lifts it to a more
+> elegant, aesthetically pleasing look while **preserving the "living
+> illustrated fable" warm-hearth identity** (see `UI.md`). **Retune only** —
+> lights, palette, tone-mapping, surfaces. **No new dependencies** (the deferred
+> `@react-three/postprocessing` bloom stays deferred). `theme/palette.ts` is the
+> single source of truth, so most shifts cascade to scene + chrome.
+
+### 15.1 Principles
+
+- **Lift, don't flatten.** Brighter and more readable, but still warm,
+  atmospheric, and elegant — not fluorescent or washed-out.
+- **Keep the identity.** Same warm amber (`hearth`) + cool arcane-teal accent
+  soul; lift luminance and add a touch of saturation/contrast. No cool/jewel
+  departure.
+- **One source of truth.** Drive colour from `palette.ts` so the 3D scene and the
+  2D chrome stay consistent and re-tunable from one place.
+- **No new deps; budget holds.** ~60 fps; consistent across lobby + table;
+  reduced motion unaffected.
+
+### 15.2 The current gap (why it's dark)
+
+Compounding causes: ambient intensity `0.35` (very low); canvas background and
+backdrop gradient sit in a near-black warm range (`#1a1410` → `#3a2630`); the
+felt is a dark matte teal-brown; the cool rim is only `0.45`; tone-mapping/
+exposure are left at bare defaults; and there is no bloom. The result is moody
+but joyless and hard to read.
+
+### 15.3 Design notes (per surface)
+
+- **Palette luminance lift** (`palette.ts`). Raise the atmosphere + surface
+  tokens (`bgDeep/bgDusk/bgEmber`, `feltDeep/feltHi`, `wood/woodHi`) a step or
+  two in value and a touch in saturation; keep `hearth`/`arcane` hues and card/
+  text legibility. Single source → scene + chrome follow.
+- **Light rig re-balance** (`SceneLighting.tsx`). Raise ambient (~0.35 → ~0.5),
+  nudge the warm key, and lift the cool rim/fill and hemisphere bounce for depth
+  without flatness; soften the contact-shadow opacity so the floor reads lighter.
+- **Tone mapping & exposure** (`TableScene.tsx`). Set explicit ACESFilmic tone
+  mapping with a tuned exposure and correct colour space for a filmic, elegant
+  grade rather than the bare default.
+- **Backdrop & atmosphere** (`Atmosphere.tsx`, `SafeEnvironment.tsx`). Brighten
+  and refine the gradient stops and the hearth-glow bloom; tune the motes; lift
+  the IBL panel brightness so cards, masks, and felt catch a richer sheen.
+- **Felt & table** (`Table.tsx`). Lift the felt sheen brightness/contrast and the
+  walnut rim highlight so the table feels inviting, not murky.
+
+### 15.4 Where it lives
+
+- `apps/client/src/theme/palette.ts` — colour source of truth.
+- `apps/client/src/components/scene/SceneLighting.tsx` — light rig.
+- `apps/client/src/components/scene/TableScene.tsx` — tone mapping / exposure.
+- `apps/client/src/components/scene/Atmosphere.tsx` — backdrop, hearth glow,
+  motes.
+- `apps/client/src/components/scene/SafeEnvironment.tsx` — procedural IBL.
+- `apps/client/src/components/scene/Table.tsx` — felt + rim.
+
+### 15.5 Implementation phases (build order)
+
+> Same commit discipline as §13.5: build + lint green → `git add` →
+> `git commit` → `git push origin main` → mark ✅. One commit per step, no
+> attribution trailer.
+
+1. ⬜ **Palette luminance lift.** Brighten/enrich atmosphere + surface tokens in
+   `palette.ts`, keeping hues and legibility. → commit + push + ✅.
+2. ⬜ **Light rig re-balance.** Raise ambient/key/rim/hemisphere; soften contact
+   shadow. → commit + push + ✅.
+3. ⬜ **Tone mapping & exposure.** Explicit ACESFilmic + tuned exposure + colour
+   space on the Canvas. → commit + push + ✅.
+4. ⬜ **Backdrop & atmosphere polish.** Brighter elegant gradient + hearth glow +
+   motes; lift IBL panels. → commit + push + ✅.
+5. ⬜ **Felt & table polish.** Lift felt sheen + rim highlight. → commit + push +
+   ✅.
+6. ⬜ **QA pass.** Two-tab readability; warm/elegant (not flat); ~60 fps; lobby +
+   table consistent; reduced motion unaffected. → commit + push + ✅.
+
+### 15.6 Acceptance criteria (done =)
+
+- Scene is **comfortably readable and elegant**, with the **warm hearth identity
+  intact**.
+- **No new dependencies**; ~60 fps held; lobby + table consistent.
+- Reduced motion unaffected.
