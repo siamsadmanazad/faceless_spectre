@@ -152,20 +152,57 @@ function DealerHand({ plan, startedAt, role, color, mirror = false }: DealerHand
           <meshMatcapMaterial matcap={handMatcap} transparent opacity={0} />
         </mesh>
 
+        {/* Palm taper — a narrower lobe toward the fingers so the palm reads
+            as a contoured shape (wide at the wrist, narrowing forward)
+            rather than a uniform dome. */}
+        <mesh position={[0, 0.0, -0.1]} scale={[0.84, 0.4, 0.62]}>
+          <sphereGeometry args={[0.15, 16, 12]} />
+          <meshMatcapMaterial matcap={handMatcap} transparent opacity={0} />
+        </mesh>
+
         {/* Wrist knuckle that melts back toward the smoke. */}
         <mesh position={[0, -0.006, 0.078]} scale={[0.98, 0.48, 1.03]}>
           <sphereGeometry args={[0.1, 14, 12]} />
           <meshMatcapMaterial matcap={handMatcap} transparent opacity={0} />
         </mesh>
 
-        {/* Fingers — tapering capsules, fanned and curled forward. Thicker
-            radius than before so they read as fingers, not wires, at scale. */}
-        {FINGERS.map((f, i) => (
-          <mesh key={i} position={[m * f.x, 0.0, -0.175]} rotation={[f.curl, m * f.splay, 0]}>
-            <capsuleGeometry args={[0.027, f.len, 4, 10]} />
-            <meshMatcapMaterial matcap={handMatcap} transparent opacity={0} />
-          </mesh>
-        ))}
+        {/* Forearm stub — bridges the wrist into the smoke column, already
+            more translucent than the solid hand to read as dissolving. */}
+        <mesh
+          position={[0, -0.004, 0.155]}
+          rotation={[Math.PI / 2, 0, 0]}
+          scale={[0.78, 1, 0.78]}
+          userData={{ opacityScale: 0.45 }}
+        >
+          <capsuleGeometry args={[0.082, 0.1, 4, 10]} />
+          <meshMatcapMaterial matcap={handMatcap} transparent opacity={0} />
+        </mesh>
+
+        {/* Fingers — two-segment capsules (knuckle + tip joint) fanned and
+            curled forward, so each finger reads with a real bend instead of
+            a single rigid rod. Thicker radius than before so they read as
+            fingers, not wires, at scale. */}
+        {FINGERS.map((f, i) => {
+          const proxLen = f.len * 0.56;
+          const distLen = f.len * 0.44;
+          return (
+            <group key={i} position={[m * f.x, 0.0, -0.13]} rotation={[f.curl, m * f.splay, 0]}>
+              {/* Proximal segment — knuckle to mid-joint. */}
+              <mesh position={[0, -proxLen / 2, 0]}>
+                <capsuleGeometry args={[0.027, proxLen, 4, 10]} />
+                <meshMatcapMaterial matcap={handMatcap} transparent opacity={0} />
+              </mesh>
+              {/* Distal segment — a subtle inward fold gives the fingertip a
+                  real joint rather than a straight taper. */}
+              <group position={[0, -proxLen, 0]} rotation={[-0.32, 0, 0]}>
+                <mesh position={[0, -distLen / 2, 0]}>
+                  <capsuleGeometry args={[0.0235, distLen, 4, 10]} />
+                  <meshMatcapMaterial matcap={handMatcap} transparent opacity={0} />
+                </mesh>
+              </group>
+            </group>
+          );
+        })}
 
         {/* Thumb — a thicker capsule angled out from the side. */}
         <mesh position={[m * 0.155, -0.01, 0.0]} rotation={[-1.3, m * 0.4, m * 0.85]}>
