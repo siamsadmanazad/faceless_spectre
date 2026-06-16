@@ -929,23 +929,35 @@ function buildSplit(
     const pileY = rankInPile[i] * LIFT;
     const destY = (destBase[k] + rankInPile[i]) * LIFT;
 
-    // Divide — piles lift off the top one at a time, deliberately.
+    // Divide — piles lift off the top one at a time, deliberately. A hover-hold
+    // (rather than a straight ease) gives each pile a real air gap: it floats
+    // at the peak of its arc, mid-flight between source and destination,
+    // instead of sweeping straight across — the tableau reads as placed, not
+    // poured.
     if (t < pHold.end) {
       const dt = phaseT(pDivide, t);
-      const s = easeInOut(pileS(dt, k));
+      const s = hoverHold(pileS(dt, k), 0.3, 0.7);
       if (s <= 0) return; // still in the source stack
       const arc = Math.sin(Math.PI * s) * 0.18;
       out.x = lerp(out.x, px[k], s);
       out.y = lerp(out.y, pileY, s) + arc;
       out.z = lerp(out.z, pz[k], s);
       out.yaw = lerp(out.yaw, pyaw[k], s);
+      // Tableau hold — once every pile has landed, let each one breathe
+      // faintly and out of sync with its neighbours, so the divided rows
+      // read as distinct, alive groups rather than a frozen diagram.
+      if (t >= pDivide.end) {
+        out.y += buoyancy(t, k, 311, 0.006, 10);
+      }
       return;
     }
 
-    // Reassemble — piles return to a central stack in the new order.
+    // Reassemble — piles return to a central stack in the new order. Same
+    // hover-hold pause as the divide, so the reorder is legible: each pile
+    // hangs in the air long enough to register before it lands in its new slot.
     if (t < pReassemble.end) {
       const rt = phaseT(pReassemble, t);
-      const s = easeInOut(pileS(rt, slotOf[k]));
+      const s = hoverHold(pileS(rt, slotOf[k]), 0.3, 0.7);
       const arc = Math.sin(Math.PI * s) * 0.16;
       out.x = lerp(px[k], jit(i, 9, 0.02), s);
       out.y = lerp(pileY, destY, s) + arc;
@@ -973,20 +985,26 @@ function buildSplit(
       return;
     }
     // The working hand carries each pile out, then back in the new order.
+    // A weight-shift: the hand dips to make contact at grasp and release,
+    // and rises through the carry, with grip tension (curl) tightening
+    // around the pile in between — the lift reads as picking something up,
+    // not gliding a token across the felt.
     if (t < pHold.end) {
       const dt = phaseT(pDivide, t);
       const k = activePile(dt);
       const s = pileS(dt, k);
-      const reach = Math.sin(Math.PI * clamp01(s)); // out and back per pile
+      const sH = hoverHold(s, 0.3, 0.7);
+      const reach = Math.sin(Math.PI * sH); // out and back per pile, holding at the peak
       setHand(
         out,
         px[k] * easeInOut(clamp01(s * 1.4)),
-        deckH * 0.7 + 0.22 + (1 - reach) * 0.08,
+        deckH * 0.7 + 0.22 + reach * 0.07 - (1 - reach) * 0.05,
         lerp(0.08, pz[k] + 0.06, reach),
         -0.7,
         0,
         0,
         0.92,
+        curlPulse(s),
       );
       return;
     }
@@ -995,16 +1013,18 @@ function buildSplit(
       const m = activePile(rt);
       const k = order[m];
       const s = pileS(rt, m);
+      const sH = hoverHold(s, 0.3, 0.7);
       // Grab pile k, carry it to the center stack.
       setHand(
         out,
         px[k] * (1 - easeInOut(clamp01(s / 0.7))),
-        0.3 + Math.sin(Math.PI * s) * 0.12,
+        0.3 + Math.sin(Math.PI * sH) * 0.12,
         lerp(pz[k] + 0.06, 0.08, easeInOut(s)),
         -0.7,
         0,
         0,
         0.92,
+        curlPulse(s),
       );
       return;
     }
