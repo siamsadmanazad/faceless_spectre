@@ -56,6 +56,8 @@ export interface HandPose {
   yaw: number;
   roll: number;
   opacity: number;
+  /** Finger curl/tension multiplier — 1 = resting curl, >1 tighter (grip), <1 looser (release). */
+  curl: number;
 }
 
 export type HandRole = 'left' | 'right';
@@ -74,7 +76,7 @@ export function createCardPose(): CardPose {
 }
 
 export function createHandPose(): HandPose {
-  return { x: 0, y: 0, z: 0, pitch: 0, yaw: 0, roll: 0, opacity: 0 };
+  return { x: 0, y: 0, z: 0, pitch: 0, yaw: 0, roll: 0, opacity: 0, curl: 1 };
 }
 
 // ── Math helpers ──────────────────────────────────────────────────────────────
@@ -143,6 +145,7 @@ function setHand(
   yaw: number,
   roll: number,
   opacity = 0.88,
+  curl = 1,
 ): void {
   out.x = x;
   out.y = y;
@@ -151,6 +154,45 @@ function setHand(
   out.yaw = yaw;
   out.roll = roll;
   out.opacity = opacity;
+  out.curl = curl;
+}
+
+// ── Shared refinement primitives ──────────────────────────────────────────────
+//
+// Small, reusable motion shapes shared by the per-style builders below, so
+// each style's signature feel (cascade lead/lag, chop tension, buoyant
+// drift, hover-and-go) draws from the same well-tested vocabulary instead of
+// one-off per-style math.
+
+/** Per-card time-domain offset for a cascade — some cards lead, some trail,
+ *  like a real thumb release. Deterministic per (card, salt); range ±amp. */
+export function leadLag(i: number, salt: number, amp: number): number {
+  return jit(i, salt, amp * 2);
+}
+
+/** A gentle drift as if riding a current rather than pinned in place.
+ *  `salt` desyncs the phase per card so a whole field doesn't pulse in
+ *  lockstep. */
+export function buoyancy(t: number, i: number, salt: number, amp: number, speed = 6): number {
+  return Math.sin(t * speed + hash01(i + salt) * Math.PI * 2) * amp;
+}
+
+/** Eases in, holds, eases out — a real pause in the middle rather than a
+ *  straight lerp, for moments that should read as deliberate. */
+export function hoverHold(s: number, holdStart = 0.4, holdEnd = 0.6): number {
+  const c = clamp01(s);
+  if (c <= holdStart) return easeOut(c / holdStart) * 0.5;
+  if (c < holdEnd) return 0.5;
+  return 0.5 + easeIn((c - holdEnd) / (1 - holdEnd)) * 0.5;
+}
+
+/** Finger curl/tension over a 0..1 gesture window — relaxed → gripped →
+ *  relaxed. Feeds `HandPose.curl`, which scales each finger's curl angle. */
+export function curlPulse(s: number, grip = 1.18, release = 0.88): number {
+  const c = clamp01(s);
+  return c < 0.5
+    ? lerp(release, grip, easeInOut(c / 0.5))
+    : lerp(grip, release, easeInOut((c - 0.5) / 0.5));
 }
 
 // ── Permutation machinery ─────────────────────────────────────────────────────

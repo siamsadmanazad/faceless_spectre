@@ -12,31 +12,34 @@
 import { ShuffleStyle, ShuffleIntensity } from '@faceless-spectre/shared';
 
 /** Per-style × intensity duration — a wash breathes, a riffle snaps. */
+// Each style's range is tuned to a distinct tempo: riffle is the snap, wash
+// the slow breathing reset, casino the longest dealer flourish, overhand a
+// punchy kitchen-table cadence, split the calm methodical outlier.
 const DURATION_MS: Record<ShuffleStyle, Record<ShuffleIntensity, number>> = {
   [ShuffleStyle.Overhand]: {
-    [ShuffleIntensity.Low]: 1200,
-    [ShuffleIntensity.Medium]: 1900,
-    [ShuffleIntensity.High]: 2600,
+    [ShuffleIntensity.Low]: 1100,
+    [ShuffleIntensity.Medium]: 1750,
+    [ShuffleIntensity.High]: 2450,
   },
   [ShuffleStyle.Riffle]: {
-    [ShuffleIntensity.Low]: 950,
-    [ShuffleIntensity.Medium]: 1450,
-    [ShuffleIntensity.High]: 2000,
+    [ShuffleIntensity.Low]: 850,
+    [ShuffleIntensity.Medium]: 1300,
+    [ShuffleIntensity.High]: 1850,
   },
   [ShuffleStyle.Wash]: {
-    [ShuffleIntensity.Low]: 1700,
-    [ShuffleIntensity.Medium]: 2300,
-    [ShuffleIntensity.High]: 3000,
+    [ShuffleIntensity.Low]: 1850,
+    [ShuffleIntensity.Medium]: 2500,
+    [ShuffleIntensity.High]: 3250,
   },
   [ShuffleStyle.Split]: {
-    [ShuffleIntensity.Low]: 1500,
-    [ShuffleIntensity.Medium]: 1900,
-    [ShuffleIntensity.High]: 2400,
+    [ShuffleIntensity.Low]: 1550,
+    [ShuffleIntensity.Medium]: 2000,
+    [ShuffleIntensity.High]: 2550,
   },
   [ShuffleStyle.Casino]: {
-    [ShuffleIntensity.Low]: 2900,
-    [ShuffleIntensity.Medium]: 3500,
-    [ShuffleIntensity.High]: 4200,
+    [ShuffleIntensity.Low]: 3000,
+    [ShuffleIntensity.Medium]: 3600,
+    [ShuffleIntensity.High]: 4300,
   },
 };
 

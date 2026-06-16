@@ -66,10 +66,15 @@ const FINGERS: Array<{ x: number; len: number; curl: number; splay: number }> = 
 
 const WISP_COUNT = 11;
 
+/** Resting inward fold at the second finger joint, before the curl multiplier. */
+const FINGER_JOINT_BEND = -0.32;
+
 function DealerHand({ plan, startedAt, role, color, mirror = false }: DealerHandProps) {
   const groupRef = useRef<Group>(null);
   const solidsRef = useRef<Group>(null);
   const smokeRef = useRef<Group>(null);
+  const fingerRootRefs = useRef<Array<Group | null>>([]);
+  const fingerJointRefs = useRef<Array<Group | null>>([]);
   const pose = useMemo(() => createHandPose(), []);
   const handMatcap = useMemo(() => getHandMatcap(color), [color]);
   const glow = useMemo(() => getGlowTexture(), []);
@@ -100,6 +105,16 @@ function DealerHand({ plan, startedAt, role, color, mirror = false }: DealerHand
         mat.opacity = pose.opacity * scale;
       }
     });
+
+    // Finger curl/tension micro-gesture — the script's `curl` parameter
+    // tightens or loosens both joints together, so a chop/grip moment reads
+    // as a real flex instead of a rigid pose.
+    for (let i = 0; i < FINGERS.length; i++) {
+      const root = fingerRootRefs.current[i];
+      const joint = fingerJointRefs.current[i];
+      if (root) root.rotation.x = FINGERS[i].curl * pose.curl;
+      if (joint) joint.rotation.x = FINGER_JOINT_BEND * pose.curl;
+    }
 
     // Live smoke plume — each wisp runs a staggered rise/billow/swirl/dissipate
     // loop. Phase offset by index keeps the column continuous; the per-wisp
@@ -186,15 +201,29 @@ function DealerHand({ plan, startedAt, role, color, mirror = false }: DealerHand
           const proxLen = f.len * 0.56;
           const distLen = f.len * 0.44;
           return (
-            <group key={i} position={[m * f.x, 0.0, -0.13]} rotation={[f.curl, m * f.splay, 0]}>
+            <group
+              key={i}
+              ref={(el) => {
+                fingerRootRefs.current[i] = el;
+              }}
+              position={[m * f.x, 0.0, -0.13]}
+              rotation={[f.curl, m * f.splay, 0]}
+            >
               {/* Proximal segment — knuckle to mid-joint. */}
               <mesh position={[0, -proxLen / 2, 0]}>
                 <capsuleGeometry args={[0.027, proxLen, 4, 10]} />
                 <meshMatcapMaterial matcap={handMatcap} transparent opacity={0} />
               </mesh>
               {/* Distal segment — a subtle inward fold gives the fingertip a
-                  real joint rather than a straight taper. */}
-              <group position={[0, -proxLen, 0]} rotation={[-0.32, 0, 0]}>
+                  real joint rather than a straight taper; curls in sync with
+                  the root via the script's curl parameter. */}
+              <group
+                ref={(el) => {
+                  fingerJointRefs.current[i] = el;
+                }}
+                position={[0, -proxLen, 0]}
+                rotation={[FINGER_JOINT_BEND, 0, 0]}
+              >
                 <mesh position={[0, -distLen / 2, 0]}>
                   <capsuleGeometry args={[0.0235, distLen, 4, 10]} />
                   <meshMatcapMaterial matcap={handMatcap} transparent opacity={0} />

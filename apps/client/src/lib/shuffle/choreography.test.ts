@@ -6,6 +6,10 @@ import {
   createCardPose,
   createHandPose,
   restPose,
+  leadLag,
+  buoyancy,
+  hoverHold,
+  curlPulse,
   FACE_DOWN_LIMIT,
   LIFT,
 } from './choreography';
@@ -89,6 +93,7 @@ describe('shuffle choreography plans', () => {
               expect(Number.isFinite(hp.x)).toBe(true);
               expect(Number.isFinite(hp.y)).toBe(true);
               expect(Number.isFinite(hp.z)).toBe(true);
+              expect(Number.isFinite(hp.curl)).toBe(true);
               expect(hp.opacity).toBeGreaterThanOrEqual(0);
               expect(hp.opacity).toBeLessThanOrEqual(1);
             }
@@ -158,6 +163,53 @@ describe('shuffle choreography plans', () => {
       if (Math.abs(pa.x - pb.x) > 1e-6 || Math.abs(pa.z - pb.z) > 1e-6) differs = true;
     }
     expect(differs).toBe(true);
+  });
+});
+
+describe('shared refinement primitives', () => {
+  it('leadLag is deterministic, bounded, and varies per card', () => {
+    let differs = false;
+    for (let i = 0; i < 52; i++) {
+      const v = leadLag(i, 11, 0.1);
+      expect(Number.isFinite(v)).toBe(true);
+      expect(Math.abs(v)).toBeLessThanOrEqual(0.1);
+      expect(leadLag(i, 11, 0.1)).toBe(v); // deterministic
+      if (i > 0 && v !== leadLag(i - 1, 11, 0.1)) differs = true;
+    }
+    expect(differs).toBe(true);
+  });
+
+  it('buoyancy stays within amplitude and desyncs per card', () => {
+    let differs = false;
+    for (let step = 0; step <= 50; step++) {
+      const t = step / 10;
+      const a = buoyancy(t, 0, 5, 0.02);
+      const b = buoyancy(t, 1, 5, 0.02);
+      expect(Math.abs(a)).toBeLessThanOrEqual(0.02 + 1e-9);
+      expect(Math.abs(b)).toBeLessThanOrEqual(0.02 + 1e-9);
+      if (a !== b) differs = true;
+    }
+    expect(differs).toBe(true);
+  });
+
+  it('hoverHold eases in, holds flat at the midpoint, then eases out', () => {
+    expect(hoverHold(0)).toBeCloseTo(0, 5);
+    expect(hoverHold(0.4)).toBeCloseTo(0.5, 5);
+    expect(hoverHold(0.5)).toBeCloseTo(0.5, 5);
+    expect(hoverHold(0.6)).toBeCloseTo(0.5, 5);
+    expect(hoverHold(1)).toBeCloseTo(1, 5);
+    for (let step = 0; step <= 100; step++) {
+      expect(Number.isFinite(hoverHold(step / 100))).toBe(true);
+    }
+  });
+
+  it('curlPulse rests at the boundaries and peaks mid-gesture', () => {
+    expect(curlPulse(0)).toBeCloseTo(0.88, 5);
+    expect(curlPulse(0.5)).toBeCloseTo(1.18, 5);
+    expect(curlPulse(1)).toBeCloseTo(0.88, 5);
+    for (let step = 0; step <= 100; step++) {
+      expect(Number.isFinite(curlPulse(step / 100))).toBe(true);
+    }
   });
 });
 
