@@ -508,7 +508,7 @@ their size. Geometry is in `DealerHands.tsx`; smoke/glow/hand matcap textures in
 2. ✅ **Keyframe re-fit.** Re-tune `handPose` per-style/per-phase offsets so the
    larger hands frame the deck without clipping; verify all five styles. → commit
    + push + ✅.
-3. ⬜ **Anatomical detail.** Knuckle/joint articulation, tapered palm, wrist/
+3. ✅ **Anatomical detail.** Knuckle/joint articulation, tapered palm, wrist/
    forearm stub dissolving into smoke. → commit + push + ✅.
 4. ⬜ **Smoke & ethereal pass.** More/larger wisps, richer turbulence, longer
    rise, forearm smoke column, tuned aura. → commit + push + ✅.
