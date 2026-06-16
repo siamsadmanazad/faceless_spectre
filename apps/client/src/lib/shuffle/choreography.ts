@@ -355,7 +355,7 @@ function buildRiffle(
   const pRiffle2 = findPhase(phases, 'riffle2');
   const pBridge = findPhase(phases, 'bridge');
   const pSquare = findPhase(phases, 'square')!;
-  const bridgeAmp = doubleRiffle ? 0.42 : 0.3;
+  const bridgeAmp = doubleRiffle ? 0.52 : 0.38;
 
   // Half-stack pose for a riffle round (halves tilted so inner corners meet).
   function halfPose(i: number, perm: RifflePerm, out: CardPose): void {
@@ -384,7 +384,9 @@ function buildRiffle(
   // The interleave: each card drops from its half into the rising center pile
   // in merged order, with a small flick of fan on the way in.
   function interleave(i: number, perm: RifflePerm, rt: number, out: CardPose): void {
-    const tau = perm.mergedPos[i] / count;
+    // A little lead/lag per card so the cascade releases like a real thumb —
+    // some cards drop a beat early, some trail — instead of a uniform zip.
+    const tau = perm.mergedPos[i] / count + leadLag(i, 71, 0.018);
     const ds = clamp01((rt * 1.08 - tau) / 0.1);
     if (ds <= 0) {
       halfPose(i, perm, out);
@@ -441,33 +443,40 @@ function buildRiffle(
     if (pBridge && t < pBridge.end) {
       const bt = phaseT(pBridge, t);
       const ci = finalPerm.mergedPos[i] / count;
-      const rise = easeOut(clamp01(bt / 0.35));
+      // A small spring overshoot on the rise — the arch pops up a touch past
+      // its peak and settles back, instead of a flat ease-out.
+      const riseRaw = clamp01(bt / 0.35);
+      const rise = easeOut(riseRaw) + Math.sin(riseRaw * Math.PI) * 0.08 * (1 - riseRaw);
+      // A narrower window makes the front read as a real travelling
+      // waterfall ripple rather than a soft wipe.
       const front = easeIn(clamp01((bt - 0.3) / 0.7));
-      const flat = clamp01((front - ci) / 0.12);
+      const flat = clamp01((front - ci) / 0.08);
       // Damp to zero at the phase end so the square phase starts seamlessly.
       const damp = 1 - easeIn(clamp01((bt - 0.85) / 0.15));
       const env = rise * (1 - flat) * damp;
       out.x = scratchA.x;
       out.y = scratchA.y + Math.sin(Math.PI * ci) * bridgeAmp * env;
-      out.z = scratchA.z + Math.sin(Math.PI * ci) * 0.12 * env;
+      out.z = scratchA.z + Math.sin(Math.PI * ci) * 0.16 * env;
       out.yaw = scratchA.yaw;
       out.bank = 0;
       out.tilt = Math.cos(Math.PI * ci) * 0.5 * env;
       return;
     }
 
-    // Square — align to the neat stack with a couple of decaying side taps.
+    // Square — align to the neat stack with a couple of quick, sharply
+    // decaying taps so the final settle reads crisp rather than a wobble.
     const qt = easeInOut(phaseT(pSquare, t));
     restPose(i, scratchB);
     lerpPose(scratchA, scratchB, qt, out);
-    out.x += Math.sin(qt * Math.PI * 3) * (1 - qt) * 0.012;
+    out.x += Math.sin(qt * Math.PI * 4.5) * Math.pow(1 - qt, 1.6) * 0.014;
   };
 
   const hand: HandPoseFn = (role, t, out) => {
     const dir = role === 'left' ? -1 : 1;
 
     const riffleHand = (rt: number): void => {
-      // Each hand owns a half; thumbs tremble as cards release.
+      // Each hand owns a half; thumbs tremble and pulse tension as cards
+      // release, in time with the lead/lag cascade below.
       setHand(
         out,
         dir * lerp(halfX + 0.06, 0.2, rt),
@@ -476,6 +485,8 @@ function buildRiffle(
         -0.7,
         dir * 0.1,
         dir * 0.3,
+        0.88,
+        curlPulse(rt),
       );
     };
 
