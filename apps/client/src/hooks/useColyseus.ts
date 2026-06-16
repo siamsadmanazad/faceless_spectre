@@ -225,6 +225,7 @@ export function useColyseus(roomId: string, displayName?: string, spectate = fal
       if (typeof state.phase === 'string') next.phase = state.phase;
       if (typeof state.hostId === 'string') next.hostId = state.hostId;
       if (typeof state.mode === 'string') next.mode = state.mode;
+      if (typeof state.joinCode === 'string') next.joinCode = state.joinCode;
       if (typeof state.allowRandomFill === 'boolean') next.allowRandomFill = state.allowRandomFill;
       if (typeof state.locked === 'boolean') next.locked = state.locked;
       if (typeof state.spectatorCount === 'number') next.spectatorCount = state.spectatorCount;

@@ -26,9 +26,18 @@ async function joinByCode(code: string, joinOptions: Record<string, unknown>) {
     return await matchMaker.joinById(code, joinOptions);
   } catch (err) {
     const rooms = await matchMaker.query({ name: 'table_room' });
-    const match = rooms.find((r) => r.roomId.toLowerCase() === code.toLowerCase());
-    if (match && match.roomId !== code) {
-      return await matchMaker.joinById(match.roomId, joinOptions);
+    const byId = rooms.find((r) => r.roomId.toLowerCase() === code.toLowerCase());
+    if (byId && byId.roomId !== code) {
+      return await matchMaker.joinById(byId.roomId, joinOptions);
+    }
+    // Not a (mistyped-case) room id — try the short human-typed invite code
+    // instead (case-insensitive; that code's alphabet has no case-collisions,
+    // but a person might still type it lowercase).
+    const byCode = rooms.find(
+      (r) => typeof r.metadata?.joinCode === 'string' && r.metadata.joinCode.toLowerCase() === code.toLowerCase(),
+    );
+    if (byCode) {
+      return await matchMaker.joinById(byCode.roomId, joinOptions);
     }
     throw err;
   }
@@ -107,7 +116,7 @@ async function main(): Promise<void> {
         });
         return reply.code(200).send({
           roomId: reservation.room.roomId,
-          code: reservation.room.roomId,
+          code: reservation.room.metadata?.joinCode ?? reservation.room.roomId,
           seatReservation: reservation,
         });
       } catch (err) {

@@ -47,7 +47,7 @@ export function HUD({
   const players = useRoomStore((s) => s.players);
   const localPlayerId = useRoomStore((s) => s.localPlayerId);
   const cards = useRoomStore((s) => s.cards);
-  const roomId = useRoomStore((s) => s.roomId);
+  const joinCode = useRoomStore((s) => s.joinCode);
   const hostId = useRoomStore((s) => s.hostId);
   const mode = useRoomStore((s) => s.mode);
   const allowRandomFill = useRoomStore((s) => s.allowRandomFill);
@@ -83,9 +83,8 @@ export function HUD({
     !!selectedCard && selectedCard.ownerId === localPlayerId && selectedCard.state === 'SELECTED';
 
   function copyInvite() {
-    if (!roomId) return;
-    const link = `${window.location.origin}/room/${roomId}`;
-    navigator.clipboard?.writeText(link).then(
+    if (!joinCode) return;
+    navigator.clipboard?.writeText(joinCode).then(
       () => {
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
@@ -117,10 +116,10 @@ export function HUD({
           <span style={styles.roomBadge}>
             <Icon name={isPrivate ? 'lock' : 'globe'} size={12} /> {isPrivate ? 'Private' : 'Public'}
           </span>
-          {roomId && <span style={styles.roomCode}>{roomId}</span>}
+          {joinCode && <span style={styles.roomCode}>{joinCode}</span>}
           <button style={styles.copyBtn} onClick={copyInvite}>
             <span style={styles.iconLabel}>
-              <Icon name={copied ? 'check' : 'copy'} size={12} /> {copied ? 'Copied' : 'Copy link'}
+              <Icon name={copied ? 'check' : 'copy'} size={12} /> {copied ? 'Copied' : 'Copy code'}
             </span>
           </button>
         </div>

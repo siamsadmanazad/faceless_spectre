@@ -23,6 +23,13 @@ export const RECONNECT_GRACE_SEC = 120;
 /** Extra non-seat connection slots for spectators, on top of the player cap. */
 export const SPECTATOR_SLOTS = 4;
 
+/** Curated alphabet for the human-typed room invite code — excludes visually
+ *  ambiguous characters (0/O, 1/I/L) so a misread/mistyped glyph can't turn
+ *  into a different valid character. Distinct from the internal Colyseus
+ *  room id, which is never meant to be retyped by hand. */
+export const JOIN_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+export const JOIN_CODE_LENGTH = 6;
+
 export const PRESENCE_THROTTLE_MS = 50;
 export const MAX_INTENTS_PER_SECOND = 20;
 /** Server-side flush cadence for aggregated presence (one broadcast per tick). */

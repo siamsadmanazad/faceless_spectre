@@ -70,6 +70,8 @@ interface RoomState {
   maxPlayers: number;
   hostId: string;
   mode: string;
+  /** Short, human-typable invite code — distinct from the internal room id. */
+  joinCode: string;
   allowRandomFill: boolean;
   locked: boolean;
   spectatorCount: number;
@@ -100,6 +102,7 @@ interface RoomState {
     phase?: string;
     hostId?: string;
     mode?: string;
+    joinCode?: string;
     allowRandomFill?: boolean;
     locked?: boolean;
     spectatorCount?: number;
@@ -142,6 +145,7 @@ export const useRoomStore = create<RoomState>((set) => ({
   maxPlayers: 6,
   hostId: '',
   mode: 'public',
+  joinCode: '',
   allowRandomFill: false,
   locked: false,
   spectatorCount: 0,
@@ -173,6 +177,7 @@ export const useRoomStore = create<RoomState>((set) => ({
       phase: next.phase ?? s.phase,
       hostId: next.hostId ?? s.hostId,
       mode: next.mode ?? s.mode,
+      joinCode: next.joinCode ?? s.joinCode,
       allowRandomFill: next.allowRandomFill ?? s.allowRandomFill,
       locked: next.locked ?? s.locked,
       spectatorCount: next.spectatorCount ?? s.spectatorCount,
@@ -294,6 +299,7 @@ export const useRoomStore = create<RoomState>((set) => ({
       maxPlayers: 6,
       hostId: '',
       mode: 'public',
+      joinCode: '',
       allowRandomFill: false,
       locked: false,
       spectatorCount: 0,

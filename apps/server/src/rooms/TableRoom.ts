@@ -1,10 +1,12 @@
-import { randomUUID } from 'node:crypto';
+import { randomInt, randomUUID } from 'node:crypto';
 import { Room, Client, logger } from 'colyseus';
 import {
   AnimationType,
   CardState,
   ErrorCode,
   IntentType,
+  JOIN_CODE_ALPHABET,
+  JOIN_CODE_LENGTH,
   MAX_INTENTS_PER_SECOND,
   MAX_PRESENCE_PER_SECOND,
   MAX_SIGNALING_PER_SECOND,
@@ -103,6 +105,7 @@ export class TableRoom extends Room<RoomStateSchema> {
     this.state.maxPlayers = playerCap;
 
     this.state.mode = options?.mode === RoomMode.Private ? RoomMode.Private : RoomMode.Public;
+    this.state.joinCode = this.generateJoinCode();
     this.refreshDiscovery();
 
     this.initDeck();
@@ -292,13 +295,27 @@ export class TableRoom extends Room<RoomStateSchema> {
   private refreshDiscovery(): void {
     if (this.state.locked) {
       this.setPrivate(true);
-      this.setMetadata({ mode: this.state.mode, browsable: false });
+      this.setMetadata({ mode: this.state.mode, browsable: false, joinCode: this.state.joinCode });
       return;
     }
     const playersFull = this.state.players.size >= this.state.maxPlayers;
     const matchmade = !playersFull && (this.state.mode === RoomMode.Public || this.state.allowRandomFill);
     this.setPrivate(!matchmade);
-    this.setMetadata({ mode: this.state.mode, browsable: matchmade && this.state.mode === RoomMode.Public });
+    this.setMetadata({
+      mode: this.state.mode,
+      browsable: matchmade && this.state.mode === RoomMode.Public,
+      joinCode: this.state.joinCode,
+    });
+  }
+
+  /** CSPRNG-derived invite code from a curated, unambiguous alphabet — safe to
+   *  read aloud or retype without 0/O/1/I/L confusion. */
+  private generateJoinCode(): string {
+    let code = '';
+    for (let i = 0; i < JOIN_CODE_LENGTH; i++) {
+      code += JOIN_CODE_ALPHABET[randomInt(JOIN_CODE_ALPHABET.length)];
+    }
+    return code;
   }
 
   private initDeck(): void {

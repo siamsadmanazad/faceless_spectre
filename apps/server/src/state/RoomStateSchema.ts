@@ -9,6 +9,9 @@ export class RoomStateSchema extends Schema {
   /** sessionId of the host (room creator / first joiner). */
   @type('string') hostId: string = '';
   @type('string') mode: string = 'public';
+  /** Short, human-typable invite code (curated alphabet) — distinct from the
+   *  internal Colyseus room id, which is unsafe to retype by hand. */
+  @type('string') joinCode: string = '';
   /** Number of seatless observers currently watching. */
   @type('number') spectatorCount: number = 0;
   /** Host has opened empty seats to random fill (private rooms only). */

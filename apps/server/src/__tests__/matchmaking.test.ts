@@ -45,7 +45,14 @@ interface RoomListing {
   roomId: string;
   locked: boolean;
   private: boolean;
-  metadata?: { browsable?: boolean; mode?: string };
+  metadata?: { browsable?: boolean; mode?: string; joinCode?: string };
+}
+
+/** Mirrors the join-code fallback in apps/server/src/index.ts's joinByCode():
+ *  resolve a human-typed code to its room's real id via metadata, case-insensitively. */
+async function resolveByJoinCode(code: string): Promise<string | undefined> {
+  const rooms = (await matchMaker.query({ name: 'table_room' })) as unknown as RoomListing[];
+  return rooms.find((r) => r.metadata?.joinCode?.toLowerCase() === code.toLowerCase())?.roomId;
 }
 async function browsableLobby(): Promise<RoomListing[]> {
   const rooms = (await matchMaker.query({ name: 'table_room' })) as unknown as RoomListing[];
@@ -122,6 +129,24 @@ describe('matchmaking & join model', () => {
     // Quick Play must not enter the private room — it spins up a new one.
     const quick = track(await client().joinOrCreate('table_room', { mode: RoomMode.Public, displayName: 'Rando' }));
     expect(quick.id).not.toBe(priv.id);
+  });
+
+  it('a private room can be joined via its short invite code, case-insensitively', async () => {
+    const host = client();
+    const priv = track(await host.create('table_room', { mode: RoomMode.Private, maxPlayers: 4, displayName: 'Host' }));
+
+    await waitFor(() => !!(priv.state as unknown as { joinCode: string }).joinCode);
+    const joinCode = (priv.state as unknown as { joinCode: string }).joinCode;
+    expect(joinCode).toMatch(/^[A-Z0-9]{6}$/);
+    // Curated alphabet excludes ambiguous glyphs entirely.
+    expect(joinCode).not.toMatch(/[0O1IL]/);
+
+    // A guest typing the code in lowercase still resolves to the same room.
+    const resolvedRoomId = await resolveByJoinCode(joinCode.toLowerCase());
+    expect(resolvedRoomId).toBe(priv.id);
+
+    const guest = track(await client().joinById(resolvedRoomId!, { displayName: 'Guest' }));
+    expect(guest.id).toBe(priv.id);
   });
 
   it('enabling backfill makes a private room Quick-Play matchable but still unlisted', async () => {
