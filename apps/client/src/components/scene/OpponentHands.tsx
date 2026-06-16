@@ -17,9 +17,13 @@ interface OpponentHandProps {
   seat: number;
   displayName: string;
   handSize: number;
+  /** The local viewer's own seat and the table's seat count — placement is
+   *  always relative to the viewer, since the camera never rotates per player. */
+  localSeat: number;
+  totalSeats: number;
 }
 
-function OpponentHand({ playerId, seat, displayName, handSize }: OpponentHandProps) {
+function OpponentHand({ playerId, seat, displayName, handSize, localSeat, totalSeats }: OpponentHandProps) {
   const cards = useRoomStore((s) => s.cards);
 
   // Cards in this player's hand (backs only — rank/suit are absent from the store
@@ -38,8 +42,8 @@ function OpponentHand({ playerId, seat, displayName, handSize }: OpponentHandPro
   const count = handCards.length || handSize; // fall back to handSize if cards lag
   if (count === 0) return null;
 
-  const [px, py, pz] = seatPosition(seat);
-  const yaw = seatFanYaw(seat);
+  const [px, py, pz] = seatPosition(seat, localSeat, totalSeats);
+  const yaw = seatFanYaw(seat, localSeat, totalSeats);
 
   return (
     <group position={[px, py, pz]} rotation={[0, yaw, 0]}>
@@ -91,11 +95,16 @@ function OpponentHand({ playerId, seat, displayName, handSize }: OpponentHandPro
 export function OpponentHands() {
   const players = useRoomStore((s) => s.players);
   const localPlayerId = useRoomStore((s) => s.localPlayerId);
+  const totalSeats = useRoomStore((s) => s.maxPlayers);
 
   const opponents = useMemo(
     () => Array.from(players.values()).filter((p) => p.id !== localPlayerId && p.connected),
     [players, localPlayerId],
   );
+
+  // The viewer's own seat is the rotation anchor — every other seat is placed
+  // relative to it so it always reads as "near", regardless of join order.
+  const localSeat = localPlayerId ? players.get(localPlayerId)?.seat ?? 0 : 0;
 
   return (
     <>
@@ -106,6 +115,8 @@ export function OpponentHands() {
           seat={player.seat}
           displayName={player.displayName}
           handSize={player.handSize}
+          localSeat={localSeat}
+          totalSeats={totalSeats}
         />
       ))}
     </>

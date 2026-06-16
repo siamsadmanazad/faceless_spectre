@@ -13,10 +13,12 @@ interface PlacedCardsProps {
 }
 
 /** Where a cast flight begins — in front of the caster's seat, at hand height.
- *  Falls back to a generic pluck point near the local edge if the seat is unknown. */
-function castOrigin(seat: number | undefined): [number, number, number] {
+ *  Falls back to a generic pluck point near the local edge if the seat is unknown.
+ *  Placement is relative to the local viewer's own seat (the camera never
+ *  rotates per player), so the cast still flies in from the right direction. */
+function castOrigin(seat: number | undefined, localSeat: number, totalSeats: number): [number, number, number] {
   if (seat == null) return [0, 0.7, 2.0];
-  const [sx, , sz] = seatPosition(seat);
+  const [sx, , sz] = seatPosition(seat, localSeat, totalSeats);
   return [sx * 0.7, 0.55, sz * 0.7];
 }
 
@@ -24,6 +26,9 @@ export function PlacedCards({ flip }: PlacedCardsProps) {
   const cards = useRoomStore((s) => s.cards);
   const players = useRoomStore((s) => s.players);
   const activeAnimations = useRoomStore((s) => s.activeAnimations);
+  const localPlayerId = useRoomStore((s) => s.localPlayerId);
+  const totalSeats = useRoomStore((s) => s.maxPlayers);
+  const localSeat = localPlayerId ? players.get(localPlayerId)?.seat ?? 0 : 0;
 
   const placedCards = Array.from(cards.values()).filter(
     (c) => c.state === CardState.Placed || c.state === CardState.Revealed,
@@ -68,7 +73,7 @@ export function PlacedCards({ flip }: PlacedCardsProps) {
             suit={card.suit}
             faceUp={faceUp}
             onClick={() => flip(card.id)}
-            castFrom={flight ? castOrigin(casterSeat) : undefined}
+            castFrom={flight ? castOrigin(casterSeat, localSeat, totalSeats) : undefined}
             castDurationMs={flight?.durationMs}
             castArc={flight?.arcHeight}
             castSpin={flight?.spin}

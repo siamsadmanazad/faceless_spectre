@@ -11,6 +11,7 @@ import {
   SpriteMaterial,
   PerspectiveCamera,
   AdditiveBlending,
+  Vector3,
 } from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { AnimationType, ShuffleStyle, type ShuffleIntensity } from '@faceless-spectre/shared';
@@ -161,6 +162,17 @@ const CARD_H = 1.0;
 const CARD_D = 0.008;
 const MAX_VISIBLE = 52;
 
+// Where the stock pile lives once a shuffle/deal settles — off to the side,
+// clear of the centre drop zone (PlacedCards' ±1.0 x ±0.7 rectangle) and the
+// local hand fan (centred at z=3.2), and comfortably inside even the
+// tightest felt (the 4-seat square's half-extent is ~2.9). The choreography
+// itself is built around the table's true centre, so the deck only parks
+// here between animations — like a dealer setting the stock aside after
+// shuffling and dealing in the middle of the felt.
+const DECK_REST_POSITION = new Vector3(2.2, 0, 0);
+const DECK_CENTER = new Vector3(0, 0, 0);
+const DECK_GLIDE_LERP = 0.15;
+
 /**
  * The face-down draw pile. One InstancedMesh for all 52 backs; during a
  * shuffle, the per-card choreography (lib/shuffle) drives every instance
@@ -173,6 +185,11 @@ export function DeckStack() {
   const deckAnimation = useRoomStore((s) => s.deckAnimation);
   const clearDeckAnimation = useRoomStore((s) => s.clearDeckAnimation);
   const players = useRoomStore((s) => s.players);
+  const localPlayerId = useRoomStore((s) => s.localPlayerId);
+  const totalSeats = useRoomStore((s) => s.maxPlayers);
+  // The viewer's own seat is the rotation anchor — the shuffle stages toward
+  // the actor's seat *relative to this viewer*, since the camera is fixed.
+  const localSeat = localPlayerId ? players.get(localPlayerId)?.seat ?? 0 : 0;
 
   const groupRef = useRef<Group>(null);
   const meshRef = useRef<InstancedMesh>(null);
@@ -219,7 +236,7 @@ export function DeckStack() {
   // actor's seat so the choreography plays from their side of the table.
   const actorSeat =
     (deckAnimation?.actorId ? players.get(deckAnimation.actorId)?.seat : undefined) ?? 0;
-  const actorYaw = seatAngle(actorSeat);
+  const actorYaw = seatAngle(actorSeat, localSeat, totalSeats);
   const actorColor = SEAT_COLORS[actorSeat % SEAT_COLORS.length];
 
   const writeRest = useCallback(() => {
@@ -247,12 +264,21 @@ export function DeckStack() {
     if (!g || !mesh) return;
 
     if (!deckAnimation) {
-      g.position.set(0, 0, 0);
+      // Resting between hands: glide aside so the stock pile never blocks the
+      // play area. Reduced motion snaps straight there instead of gliding.
+      if (prefersReducedMotion()) g.position.copy(DECK_REST_POSITION);
+      else g.position.lerp(DECK_REST_POSITION, DECK_GLIDE_LERP);
       g.rotation.set(0, 0, 0);
       g.scale.set(1, 1, 1);
       applyFinaleFov(camera, appliedFovOffsetRef, 0);
       return;
     }
+
+    // A shuffle or deal just started — the choreography below is built around
+    // the table's true centre, so glide the deck back there first (it may
+    // currently be resting aside from the previous hand).
+    if (prefersReducedMotion()) g.position.copy(DECK_CENTER);
+    else g.position.lerp(DECK_CENTER, DECK_GLIDE_LERP);
 
     if (plan && isShuffle) {
       const t = Math.min(1, (Date.now() - deckAnimation.startedAt) / plan.durationMs);
@@ -289,7 +315,6 @@ export function DeckStack() {
       g.scale.y = 1 - Math.sin(t * Math.PI) * 0.12;
     }
     if (t >= 1) {
-      g.position.set(0, 0, 0);
       g.rotation.set(0, 0, 0);
       g.scale.set(1, 1, 1);
       clearDeckAnimation();
