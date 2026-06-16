@@ -421,7 +421,7 @@ so each style *breathes* at its own tempo.
    arc variance, accelerating passes, clear cycling. → commit + push + ✅.
 4. ✅ **Wash polish.** Wider flat field, buoyancy wobble, organic swirl, deliberate
    gather. → commit + push + ✅.
-5. ⬜ **Split polish.** Inter-pile hover, weight-shift, clearer tableau + reorder.
+5. ✅ **Split polish.** Inter-pile hover, weight-shift, clearer tableau + reorder.
    → commit + push + ✅.
 6. ⬜ **Casino polish (+ deferred §9.7).** Riffle tremor, crisp strip, readable box,
    higher finale; plus the camera push-in and dust/glint accents. Resolve §9.7's
