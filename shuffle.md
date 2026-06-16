@@ -592,7 +592,7 @@ but joyless and hard to read.
 
 1. ✅ **Palette luminance lift.** Brighten/enrich atmosphere + surface tokens in
    `palette.ts`, keeping hues and legibility. → commit + push + ✅.
-2. ⬜ **Light rig re-balance.** Raise ambient/key/rim/hemisphere; soften contact
+2. ✅ **Light rig re-balance.** Raise ambient/key/rim/hemisphere; soften contact
    shadow. → commit + push + ✅.
 3. ⬜ **Tone mapping & exposure.** Explicit ACESFilmic + tuned exposure + colour
    space on the Canvas. → commit + push + ✅.
