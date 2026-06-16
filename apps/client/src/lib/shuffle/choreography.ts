@@ -630,13 +630,17 @@ function buildOverhand(
           out.z = Z_DST;
           out.tilt = 0.02;
         } else {
-          // The packet hop: lift, short arc forward, drop with a settle.
+          // The packet hop: lift, short arc forward, drop with a settle. Each
+          // packet gets its own height/snap variance so no two hops in the
+          // chop look identical.
           const e = easeInOut(s);
           const arc = Math.sin(Math.PI * e);
+          const packetSalt = p * 53 + pd.packetOf[i] * 17;
+          const hopVar = 0.82 + hash01(packetSalt) * 0.36;
           out.x += jx;
-          out.y = lerp(srcY, dstY, e) + arc * 0.1;
+          out.y = lerp(srcY, dstY, e) + arc * 0.13 * hopVar;
           out.z = lerp(Z_SRC, Z_DST, e);
-          out.tilt = lerp(TILT_SRC, 0.02, e) + arc * 0.25;
+          out.tilt = lerp(TILT_SRC, 0.02, e) + arc * 0.32 * hopVar;
           out.yaw += jit(i, p * 37, 0.12) * arc;
         }
       } else {
@@ -683,15 +687,18 @@ function buildOverhand(
       }
       const swing = easeInOut(chop);
       const arc = Math.sin(Math.PI * swing);
+      // Fingers curl tight on the pull off the back, then uncurl as the
+      // packet releases at the front — the chop's signature micro-gesture.
       setHand(
         out,
         0.06,
-        deckH * 0.6 + 0.2 + arc * 0.14,
+        deckH * 0.6 + 0.24 + arc * 0.18,
         lerp(Z_SRC - 0.02, Z_DST + 0.04, swing),
         -0.6,
         0,
         -0.15,
         0.92,
+        curlPulse(chop),
       );
       return;
     }
