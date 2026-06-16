@@ -417,7 +417,7 @@ so each style *breathes* at its own tempo.
    own tempo. No regressions; invariants green. → commit + push + ✅.
 2. ✅ **Riffle polish.** Lead/lag interleave + taller springy bridge waterfall +
    crisp square. → commit + push + ✅.
-3. ⬜ **Overhand polish.** Pronounced chop cadence, finger curl/uncurl, per-packet
+3. ✅ **Overhand polish.** Pronounced chop cadence, finger curl/uncurl, per-packet
    arc variance, accelerating passes, clear cycling. → commit + push + ✅.
 4. ⬜ **Wash polish.** Wider flat field, buoyancy wobble, organic swirl, deliberate
    gather. → commit + push + ✅.
