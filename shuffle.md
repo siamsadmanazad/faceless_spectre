@@ -598,7 +598,7 @@ but joyless and hard to read.
    space on the Canvas. → commit + push + ✅.
 4. ✅ **Backdrop & atmosphere polish.** Brighter elegant gradient + hearth glow +
    motes; lift IBL panels. → commit + push + ✅.
-5. ⬜ **Felt & table polish.** Lift felt sheen + rim highlight. → commit + push +
+5. ✅ **Felt & table polish.** Lift felt sheen + rim highlight. → commit + push +
    ✅.
 6. ⬜ **QA pass.** Two-tab readability; warm/elegant (not flat); ~60 fps; lobby +
    table consistent; reduced motion unaffected. → commit + push + ✅.
