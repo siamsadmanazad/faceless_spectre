@@ -49,13 +49,19 @@ interface DealerHandProps {
   mirror?: boolean;
 }
 
+// Overall hand size knob — applied as a uniform group scale, on top of the
+// (also enlarged) local geometry below. Bigger hands need their per-phase
+// keyframe offsets re-fit (see choreography.ts handPose) so they still frame
+// the deck without clipping — that re-fit is a separate, dedicated pass.
+const HAND_SCALE = 1.5;
+
 // Fingers point toward -z (away from the wrist); the wrist boils into smoke
 // toward +z. Lengths vary so the silhouette reads as a relaxed hand, not a comb.
 const FINGERS: Array<{ x: number; len: number; curl: number; splay: number }> = [
-  { x: -0.085, len: 0.085, curl: -1.78, splay: 0.34 }, // index
-  { x: -0.03, len: 0.105, curl: -1.86, splay: 0.12 }, // middle (longest)
-  { x: 0.03, len: 0.095, curl: -1.86, splay: -0.1 }, // ring
-  { x: 0.085, len: 0.07, curl: -1.74, splay: -0.32 }, // pinky (shortest)
+  { x: -0.095, len: 0.094, curl: -1.78, splay: 0.34 }, // index
+  { x: -0.035, len: 0.116, curl: -1.86, splay: 0.12 }, // middle (longest)
+  { x: 0.035, len: 0.105, curl: -1.86, splay: -0.1 }, // ring
+  { x: 0.095, len: 0.077, curl: -1.74, splay: -0.32 }, // pinky (shortest)
 ];
 
 const WISP_COUNT = 7;
@@ -120,12 +126,12 @@ function DealerHand({ plan, startedAt, role, color, mirror = false }: DealerHand
   });
 
   return (
-    <group ref={groupRef} visible={false}>
+    <group ref={groupRef} visible={false} scale={HAND_SCALE}>
       <group ref={solidsRef}>
         {/* Palm aura — the soft ghost glow, like GhostHand's halo. */}
         <sprite
-          position={[0, 0.01, -0.04]}
-          scale={[0.6, 0.6, 0.6]}
+          position={[0, 0.012, -0.045]}
+          scale={[0.66, 0.66, 0.66]}
           userData={{ opacityScale: 0.5 }}
         >
           <spriteMaterial
@@ -139,29 +145,31 @@ function DealerHand({ plan, startedAt, role, color, mirror = false }: DealerHand
           />
         </sprite>
 
-        {/* Palm — a flattened dome, not a brick. */}
-        <mesh scale={[1.05, 0.42, 0.82]}>
+        {/* Palm — a flattened dome, not a brick. Slightly fuller (less flat)
+            than before so it carries more presence at the larger scale. */}
+        <mesh scale={[1.1, 0.46, 0.86]}>
           <sphereGeometry args={[0.15, 18, 14]} />
           <meshMatcapMaterial matcap={handMatcap} transparent opacity={0} />
         </mesh>
 
         {/* Wrist knuckle that melts back toward the smoke. */}
-        <mesh position={[0, -0.005, 0.07]} scale={[0.95, 0.45, 1.0]}>
+        <mesh position={[0, -0.006, 0.078]} scale={[0.98, 0.48, 1.03]}>
           <sphereGeometry args={[0.1, 14, 12]} />
           <meshMatcapMaterial matcap={handMatcap} transparent opacity={0} />
         </mesh>
 
-        {/* Fingers — tapering capsules, fanned and curled forward. */}
+        {/* Fingers — tapering capsules, fanned and curled forward. Thicker
+            radius than before so they read as fingers, not wires, at scale. */}
         {FINGERS.map((f, i) => (
-          <mesh key={i} position={[m * f.x, 0.0, -0.16]} rotation={[f.curl, m * f.splay, 0]}>
-            <capsuleGeometry args={[0.022, f.len, 4, 10]} />
+          <mesh key={i} position={[m * f.x, 0.0, -0.175]} rotation={[f.curl, m * f.splay, 0]}>
+            <capsuleGeometry args={[0.027, f.len, 4, 10]} />
             <meshMatcapMaterial matcap={handMatcap} transparent opacity={0} />
           </mesh>
         ))}
 
         {/* Thumb — a thicker capsule angled out from the side. */}
-        <mesh position={[m * 0.14, -0.01, 0.0]} rotation={[-1.3, m * 0.4, m * 0.85]}>
-          <capsuleGeometry args={[0.027, 0.05, 4, 10]} />
+        <mesh position={[m * 0.155, -0.01, 0.0]} rotation={[-1.3, m * 0.4, m * 0.85]}>
+          <capsuleGeometry args={[0.033, 0.058, 4, 10]} />
           <meshMatcapMaterial matcap={handMatcap} transparent opacity={0} />
         </mesh>
       </group>
